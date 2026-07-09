@@ -8,6 +8,10 @@ export image_keywords := env_var("IMAGE_KEYWORDS")
 export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
+export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
+export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
+export HOMEBREW_BOTTLE_DOMAIN := env_var_or_default("HOMEBREW_BOTTLE_DOMAIN", "")
+export HOMEBREW_API_DOMAIN := env_var_or_default("HOMEBREW_API_DOMAIN", "")
 
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
@@ -100,6 +104,12 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN; do
+        if [[ -n "${!arg:-}" ]]; then
+            BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
+        fi
+    done
+
     if [[ -z "$(git status -s)" ]]; then
         GIT_SHA=$(git rev-parse --short HEAD)
         LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")

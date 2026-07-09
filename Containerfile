@@ -1,19 +1,16 @@
 # Allow build scripts to be referenced without being copied into the final image
+ARG BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:stable"
+
 FROM scratch AS ctx
 COPY build_files /
 COPY system_files /system_files
 
 # Base Image
-FROM ghcr.io/ublue-os/bazzite:stable@sha256:b923f92d5a5b59eb992e269383eba2744601052da9d3d1595f76e79aa6ce2df0
+FROM ${BASE_IMAGE}
 ## Other possible base images include:
-# FROM ghcr.io/ublue-os/bazzite:testing
-# FROM ghcr.io/ublue-os/aurora:stable
-# FROM ghcr.io/ublue-os/bluefin-nvidia-open:stable
-# 
-# ... and so on, here are more base images
-# Universal Blue Images: https://github.com/orgs/ublue-os/packages
-# Fedora base image: quay.io/fedora/fedora-bootc:44
-# CentOS base images: quay.io/centos-bootc/centos-bootc:stream10
+# ghcr.io/ublue-os/bazzite-deck:testing
+# ghcr.io/ublue-os/bazzite-deck:stable-43.20260420
+# ghcr.io/ublue-os/bazzite:stable
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
@@ -29,6 +26,10 @@ FROM ghcr.io/ublue-os/bazzite:stable@sha256:b923f92d5a5b59eb992e269383eba2744601
 ### MODIFICATIONS
 ## make modifications desired in your image and install packages by modifying the build.sh script
 ## the following RUN directive does all the things required to run "build.sh" as recommended.
+
+ARG FLATPAK_REMOTE_URL=""
+ARG HOMEBREW_BOTTLE_DOMAIN=""
+ARG HOMEBREW_API_DOMAIN=""
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \

@@ -5,23 +5,30 @@ set -ouex pipefail
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
-### Install packages
+mkdir -p /etc/environment.d
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+if [[ -n "${FLATPAK_REMOTE_URL:-}" || -n "${HOMEBREW_BOTTLE_DOMAIN:-}" || -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
+  : > /etc/environment.d/99-aerocore-mirrors.conf
+fi
 
-# this installs a package from fedora repos
-dnf5 install -y tmux
+if [[ -n "${FLATPAK_REMOTE_URL:-}" ]]; then
+  printf '%s\n' "FLATPAK_REMOTE_URL=${FLATPAK_REMOTE_URL}" >> /etc/environment.d/99-aerocore-mirrors.conf
+  if [[ -f /usr/libexec/bazzite-mirror-utils.sh ]]; then
+    bash /usr/libexec/bazzite-mirror-utils.sh update_flathub_repo_url "${FLATPAK_REMOTE_URL}"
+  fi
+fi
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+if [[ -n "${HOMEBREW_BOTTLE_DOMAIN:-}" || -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
+  mkdir -p /etc/skel/.config/environment.d
+  : > /etc/skel/.config/environment.d/99-aerocore-mirrors.conf
+fi
 
-#### Example for enabling a System Unit File
+if [[ -n "${HOMEBREW_BOTTLE_DOMAIN:-}" ]]; then
+  printf '%s\n' "HOMEBREW_BOTTLE_DOMAIN=${HOMEBREW_BOTTLE_DOMAIN}" | tee -a /etc/environment.d/99-aerocore-mirrors.conf /etc/skel/.config/environment.d/99-aerocore-mirrors.conf >/dev/null
+fi
 
-systemctl enable podman.socket
+if [[ -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
+  printf '%s\n' "HOMEBREW_API_DOMAIN=${HOMEBREW_API_DOMAIN}" | tee -a /etc/environment.d/99-aerocore-mirrors.conf /etc/skel/.config/environment.d/99-aerocore-mirrors.conf >/dev/null
+fi
+
+find /etc/environment.d /etc/skel/.config/environment.d -name 99-aerocore-mirrors.conf -type f -exec chmod 0644 {} + 2>/dev/null || true
