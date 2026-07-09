@@ -69,6 +69,11 @@ jobs:
       # This actually builds the container image
       - name: Build Image
         id: build-image
+        env:
+          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable' }}
+          FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
+          HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
+          HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
         run: |
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
@@ -158,4 +163,3 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
-
