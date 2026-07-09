@@ -6,11 +6,6 @@ on:
       - main
   schedule:
     - cron: '05 10 * * *'  # 10:05am UTC everyday
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/README.md'
   workflow_dispatch:
 
 env:
@@ -163,23 +158,3 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
-
-      - name: Push To ACR
-        if: |
-          github.event_name != 'pull_request' &&
-          github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
-          vars.ACR_REGISTRY != '' &&
-          vars.ACR_NAMESPACE != ''
-        env:
-          ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
-          ACR_NAMESPACE: ${{ vars.ACR_NAMESPACE }}
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-          ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
-        run: |
-          set -euo pipefail
-          echo "$ACR_PASSWORD" | sudo -E podman login "$ACR_REGISTRY" -u "$ACR_USERNAME" --password-stdin
-
-          for tag in ${ALIAS_TAGS}; do
-            sudo -E podman push "${IMAGE_NAME}:${tag}" "${ACR_REGISTRY}/${ACR_NAMESPACE}/${IMAGE_NAME}:${tag}"
-          done
