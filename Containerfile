@@ -7,6 +7,11 @@ COPY system_files /system_files
 
 # Base Image
 FROM ${BASE_IMAGE}
+ARG IMAGE_NAME="aerocore-bazzite-image"
+ARG IMAGE_VENDOR="AeroCore-IO"
+ARG IMAGE_BRANCH="stable"
+ARG VERSION_TAG="latest"
+ARG VERSION_PRETTY="latest"
 ## Other possible base images include:
 # ghcr.io/ublue-os/bazzite-deck:testing
 # ghcr.io/ublue-os/bazzite-deck:stable-43.20260420
@@ -35,7 +40,8 @@ RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
     --mount=type=tmpfs,dst=/tmp \
-    /ctx/build.sh
+    /ctx/build.sh && \
+    /ctx/image-info
 
 ### LINTING
 ## Verify final image and contents are correct.
