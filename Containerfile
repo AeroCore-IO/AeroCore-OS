@@ -12,6 +12,7 @@ ARG IMAGE_VENDOR="AeroCore-IO"
 ARG IMAGE_BRANCH="stable"
 ARG VERSION_TAG="latest"
 ARG VERSION_PRETTY="latest"
+ARG OSTREE_IMAGE_REF=""
 ## Other possible base images include:
 # ghcr.io/ublue-os/bazzite-deck:testing
 # ghcr.io/ublue-os/bazzite-deck:stable-43.20260420

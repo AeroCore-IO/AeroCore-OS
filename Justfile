@@ -114,7 +114,7 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN; do
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
