@@ -69,6 +69,7 @@ jobs:
           FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
           HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
           HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
+          OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
         run: |
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
