@@ -1,0 +1,15 @@
+# Build the live installer payload from a desktop Bazzite runtime.
+# The image installed to disk is supplied separately as INSTALL_IMAGE_PAYLOAD.
+
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
+ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/AeroCore-IO/aerocore-bazzite-image:stable
+
+FROM ${BASE_IMAGE}
+
+ARG BASE_IMAGE
+ARG INSTALL_IMAGE_PAYLOAD
+
+RUN --mount=type=bind,source=.,target=/src \
+    env BASE_IMAGE="${BASE_IMAGE}" \
+        INSTALL_IMAGE_PAYLOAD="${INSTALL_IMAGE_PAYLOAD}" \
+        /src/installer/build.sh
