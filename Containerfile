@@ -7,7 +7,7 @@ COPY system_files /system_files
 
 # Base Image
 FROM ${BASE_IMAGE}
-ARG IMAGE_NAME="aerocore-bazzite-image"
+ARG IMAGE_NAME="aerocore-os"
 ARG IMAGE_VENDOR="AeroCore-IO"
 ARG IMAGE_BRANCH="stable"
 ARG VERSION_TAG="latest"
