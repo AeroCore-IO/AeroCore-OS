@@ -25,7 +25,7 @@ By focusing strictly on file overlays and configuration writing, this build inte
 To build AeroCore OS locally, edit `image-template.env` to match your target configurations and then run:
 
 ```bash
-just build
+sudo just build
 
 ```
 
@@ -35,3 +35,16 @@ To test a different upstream base image directly without modifying the environme
 BASE_IMAGE=ghcr.io/ublue-os/bazzite-deck:testing just build
 
 ```
+
+To build the Bazzite-style live installer locally, first build the AeroCore
+image and then run:
+
+```bash
+sudo just build
+just build-live-installer
+just run-live-installer
+```
+
+This requires privileged Podman, a rootful Podman API socket, and roughly
+70 GiB of free space. The live installer workflow consumes the published
+`latest` AeroCore image and uploads the ISO as a GitHub Actions artifact.
