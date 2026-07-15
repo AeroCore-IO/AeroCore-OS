@@ -34,3 +34,4 @@ fi
 find /etc/environment.d /etc/skel/.config/environment.d -name 99-aerocore-mirrors.conf -type f -exec chmod 0644 {} + 2>/dev/null || true
 
 /ctx/install-instruments.sh
+/ctx/patch-bazzite-deck-identity.sh
