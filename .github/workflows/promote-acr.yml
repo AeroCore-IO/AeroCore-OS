@@ -4,11 +4,6 @@ name: Promote image to ACR
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: "GitHub Environment containing ACR vars/secrets"
-        required: true
-        default: testing
-        type: environment
       source_tag:
         description: "Existing GHCR tag to promote"
         required: true
@@ -26,14 +21,13 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.environment }}-${{ inputs.image_name || 'default' }}-${{ inputs.source_tag }}
+  group: ${{ github.workflow }}-${{ inputs.image_name || 'default' }}-${{ inputs.source_tag }}
   cancel-in-progress: false
 
 jobs:
   promote_acr:
     name: Promote GHCR image to ACR
     runs-on: ubuntu-24.04
-    environment: ${{ inputs.environment }}
 
     permissions:
       contents: read
@@ -81,12 +75,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          : "${ACR_REGISTRY:?Repository or environment variable ACR_REGISTRY is required.}"
-          : "${ACR_NAMESPACE:?Repository or environment variable ACR_NAMESPACE is required.}"
-          : "${ACR_USERNAME:?Repository or environment secret ACR_USERNAME is required.}"
-          : "${ACR_PASSWORD:?Repository or environment secret ACR_PASSWORD is required.}"
-          : "${COSIGN_PRIVATE_KEY:?Repository or environment secret SIGNING_SECRET is required.}"
-          : "${COSIGN_PASSWORD:?Repository or environment secret COSIGN_PASSWORD is required.}"
+          : "${ACR_REGISTRY:?Repository variable ACR_REGISTRY is required.}"
+          : "${ACR_NAMESPACE:?Repository variable ACR_NAMESPACE is required.}"
+          : "${ACR_USERNAME:?Repository secret ACR_USERNAME is required.}"
+          : "${ACR_PASSWORD:?Repository secret ACR_PASSWORD is required.}"
+          : "${COSIGN_PRIVATE_KEY:?Repository secret SIGNING_SECRET is required.}"
+          : "${COSIGN_PASSWORD:?Repository secret COSIGN_PASSWORD is required.}"
 
       - name: Login to GitHub Container Registry
         env:
