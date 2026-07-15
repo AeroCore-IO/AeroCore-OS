@@ -4,6 +4,11 @@ name: Promote image to ACR
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: "GitHub Environment containing ACR vars/secrets"
+        required: true
+        default: testing
+        type: environment
       source_tag:
         description: "Existing GHCR tag to promote"
         required: true
@@ -13,7 +18,7 @@ on:
         required: false
         type: string
       image_name:
-        description: "Image name override; defaults to image-template.env"
+        description: "Image name override; defaults to IMAGE_NAME var, then image-template.env"
         required: false
         type: string
 
@@ -21,13 +26,14 @@ env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ inputs.image_name || 'default' }}-${{ inputs.source_tag }}
+  group: ${{ github.workflow }}-${{ inputs.environment }}-${{ inputs.image_name || 'default' }}-${{ inputs.source_tag }}
   cancel-in-progress: false
 
 jobs:
   promote_acr:
     name: Promote GHCR image to ACR
     runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
 
     permissions:
       contents: read
@@ -48,18 +54,21 @@ jobs:
       - name: Prepare image variables
         env:
           IMAGE_NAME_INPUT: ${{ inputs.image_name }}
+          IMAGE_NAME_VAR: ${{ vars.IMAGE_NAME }}
           SOURCE_TAG: ${{ inputs.source_tag }}
           TARGET_TAGS_INPUT: ${{ inputs.target_tags }}
         run: |
           set -euo pipefail
 
-          image_name="${IMAGE_NAME_INPUT:-$(just image_name)}"
+          image_name="${IMAGE_NAME_INPUT:-${IMAGE_NAME_VAR:-$(just image_name)}}"
           target_tags="${TARGET_TAGS_INPUT:-$SOURCE_TAG}"
 
-          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> "$GITHUB_ENV"
-          echo "IMAGE_NAME=${image_name,,}" >> "$GITHUB_ENV"
-          echo "SOURCE_TAG=${SOURCE_TAG}" >> "$GITHUB_ENV"
-          echo "TARGET_TAGS=${target_tags}" >> "$GITHUB_ENV"
+          {
+            echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}"
+            echo "IMAGE_NAME=${image_name,,}"
+            echo "SOURCE_TAG=${SOURCE_TAG}"
+            echo "TARGET_TAGS=${target_tags}"
+          } >> "$GITHUB_ENV"
 
       - name: Validate ACR configuration
         env:
@@ -68,14 +77,16 @@ jobs:
           ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
           ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
         run: |
           set -euo pipefail
 
-          : "${ACR_REGISTRY:?Repository variable ACR_REGISTRY is required.}"
-          : "${ACR_NAMESPACE:?Repository variable ACR_NAMESPACE is required.}"
-          : "${ACR_USERNAME:?Repository secret ACR_USERNAME is required.}"
-          : "${ACR_PASSWORD:?Repository secret ACR_PASSWORD is required.}"
-          : "${COSIGN_PRIVATE_KEY:?Repository secret SIGNING_SECRET is required.}"
+          : "${ACR_REGISTRY:?Repository or environment variable ACR_REGISTRY is required.}"
+          : "${ACR_NAMESPACE:?Repository or environment variable ACR_NAMESPACE is required.}"
+          : "${ACR_USERNAME:?Repository or environment secret ACR_USERNAME is required.}"
+          : "${ACR_PASSWORD:?Repository or environment secret ACR_PASSWORD is required.}"
+          : "${COSIGN_PRIVATE_KEY:?Repository or environment secret SIGNING_SECRET is required.}"
+          : "${COSIGN_PASSWORD:?Repository or environment secret COSIGN_PASSWORD is required.}"
 
       - name: Login to GitHub Container Registry
         env:
@@ -140,6 +151,7 @@ jobs:
           ACR_NAMESPACE: ${{ vars.ACR_NAMESPACE }}
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           DIGEST: ${{ steps.promote.outputs.digest }}
         run: |
           set -euo pipefail
