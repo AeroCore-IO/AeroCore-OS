@@ -12,6 +12,10 @@ export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-
 export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
 export HOMEBREW_BOTTLE_DOMAIN := env_var_or_default("HOMEBREW_BOTTLE_DOMAIN", "")
 export HOMEBREW_API_DOMAIN := env_var_or_default("HOMEBREW_API_DOMAIN", "")
+export INSTRUMENTS_ENABLED := env_var_or_default("INSTRUMENTS_ENABLED", "true")
+export INSTRUMENTS_RELEASE_REPOSITORY := env_var_or_default("INSTRUMENTS_RELEASE_REPOSITORY", "AeroCore-IO/booster-installer")
+export INSTRUMENTS_VERSION := env_var_or_default("INSTRUMENTS_VERSION", "latest")
+export INSTRUMENTS_RELEASE_API_BASE := env_var_or_default("INSTRUMENTS_RELEASE_API_BASE", "https://api.github.com")
 
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
@@ -114,7 +118,7 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF; do
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi

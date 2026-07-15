@@ -36,6 +36,10 @@ ARG OSTREE_IMAGE_REF=""
 ARG FLATPAK_REMOTE_URL=""
 ARG HOMEBREW_BOTTLE_DOMAIN=""
 ARG HOMEBREW_API_DOMAIN=""
+ARG INSTRUMENTS_ENABLED="true"
+ARG INSTRUMENTS_RELEASE_REPOSITORY="AeroCore-IO/booster-installer"
+ARG INSTRUMENTS_VERSION="latest"
+ARG INSTRUMENTS_RELEASE_API_BASE="https://api.github.com"
 
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+: "${AEROCORE_INSTRUMENTS_SETUP_WAIT_SECONDS:=180}"
+
+seed_root="/usr/share/aerocore-booster-release"
+state_dir="/var/lib/aerocore"
+identity_file="$state_dir/instruments-user"
+complete_marker="$state_dir/instruments-bootstrap-complete"
+attempt_marker="$state_dir/instruments-bootstrap-attempted"
+
+find_graphical_user() {
+  local requested_uid="${1:-}"
+  local active seat session state type uid user
+
+  while read -r session _; do
+    [[ -n "$session" ]] || continue
+    uid="$(loginctl show-session "$session" --property=User --value 2>/dev/null || true)"
+    if [[ ! "$uid" =~ ^[0-9]+$ ]] || ((uid < 1000)); then
+      continue
+    fi
+    [[ -z "$requested_uid" || "$uid" == "$requested_uid" ]] || continue
+
+    active="$(loginctl show-session "$session" --property=Active --value 2>/dev/null || true)"
+    state="$(loginctl show-session "$session" --property=State --value 2>/dev/null || true)"
+    type="$(loginctl show-session "$session" --property=Type --value 2>/dev/null || true)"
+    seat="$(loginctl show-session "$session" --property=Seat --value 2>/dev/null || true)"
+    [[ "$active" == "yes" || "$state" == "active" || "$state" == "online" ]] || continue
+
+    user="$(getent passwd "$uid" | cut -d: -f1)"
+    [[ -n "$user" && "$user" != "root" ]] || continue
+    if [[ "$type" == "x11" || "$type" == "wayland" ]]; then
+      printf '%s\n' "$user"
+      return 0
+    fi
+    if [[ "$seat" == "seat0" ]] && pgrep -u "$uid" -x steam >/dev/null 2>&1; then
+      printf '%s\n' "$user"
+      return 0
+    fi
+  done < <(loginctl list-sessions --no-legend --no-pager 2>/dev/null || true)
+
+  return 1
+}
+
+if [[ -f "$complete_marker" ]]; then
+  echo "AeroCore Booster user bootstrap is already complete"
+  exit 0
+fi
+
+configured_uid=""
+if [[ -f "$identity_file" ]]; then
+  configured_uid="$(awk -F= '$1 == "uid" { print $2; exit }' "$identity_file")"
+  if [[ ! "$configured_uid" =~ ^[0-9]+$ ]] ||
+    ! getent passwd "$configured_uid" >/dev/null 2>&1; then
+    configured_uid=""
+  fi
+fi
+
+deadline=$((SECONDS + AEROCORE_INSTRUMENTS_SETUP_WAIT_SECONDS))
+desktop_user=""
+while ((SECONDS < deadline)); do
+  desktop_user="$(find_graphical_user "$configured_uid" || true)"
+  [[ -n "$desktop_user" ]] && break
+  sleep 2
+done
+
+if [[ -z "$desktop_user" ]]; then
+  echo "No active graphical user found within ${AEROCORE_INSTRUMENTS_SETUP_WAIT_SECONDS}s" >&2
+  exit 1
+fi
+
+desktop_uid="$(id -u "$desktop_user")"
+desktop_group="$(id -gn "$desktop_user")"
+desktop_home="$(getent passwd "$desktop_user" | cut -d: -f6)"
+if [[ -z "$desktop_home" || ! -d "$desktop_home" ]]; then
+  echo "Home directory is unavailable for $desktop_user: $desktop_home" >&2
+  exit 1
+fi
+
+install -d -m 0755 "$state_dir"
+printf 'user=%s\nuid=%s\n' "$desktop_user" "$desktop_uid" >"$identity_file"
+chmod 0644 "$identity_file"
+
+existing_install=0
+for installed_path in \
+  "$desktop_home/.local/share/aerocore-booster/manifest.yaml" \
+  "$desktop_home/.local/share/aerocore-booster/appimage/AppRun" \
+  "$desktop_home/.local/share/aerocore-booster/aerocore-booster" \
+  "$desktop_home/.local/share/instruments-ng/manifest.yaml" \
+  "$desktop_home/.local/share/instruments-ng/appimage/AppRun" \
+  "$desktop_home/.local/share/instruments-ng/instruments-ng"; do
+  if [[ -e "$installed_path" ]]; then
+    existing_install=1
+    break
+  fi
+done
+
+if [[ "$existing_install" == "0" || -f "$attempt_marker" ]]; then
+  touch "$attempt_marker"
+  HOME="$desktop_home" \
+    AEROCORE_INSTRUMENTS_USER="$desktop_user" \
+    AEROCORE_INSTRUMENTS_GROUP="$desktop_group" \
+    AEROCORE_INSTRUMENTS_UID="$desktop_uid" \
+    AEROCORE_INSTRUMENTS_HOME="$desktop_home" \
+    bash "$seed_root/install.sh" install
+else
+  echo "Existing Instruments installation found for $desktop_user; preserving it"
+fi
+
+cat >"$complete_marker" <<EOF
+user=$desktop_user
+uid=$desktop_uid
+seed_release=$(awk -F= '$1 == "RELEASE_TAG" { print $2; exit }' "$seed_root/image-release")
+EOF
+chmod 0644 "$complete_marker"
+rm -f "$attempt_marker"
+
+# Bootstrap is deliberately one-shot. Independent updates and uninstalls are
+# owned by the user-space Instruments installer after this point.
+systemctl disable aerocore-instruments-setup.service >/dev/null 2>&1 || true
+
+echo "AeroCore Booster user bootstrap completed for $desktop_user (uid $desktop_uid)"

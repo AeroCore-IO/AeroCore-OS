@@ -1,0 +1,18 @@
+[Unit]
+Description=Configure AeroCore Booster for the graphical user
+Documentation=https://github.com/AeroCore-IO/instruments-ng
+After=systemd-user-sessions.service display-manager.service
+Wants=systemd-user-sessions.service
+ConditionPathExists=/usr/share/aerocore-booster-release/install.sh
+ConditionPathExists=!/var/lib/aerocore/instruments-bootstrap-complete
+
+[Service]
+Type=oneshot
+Environment=AEROCORE_INSTRUMENTS_SETUP_WAIT_SECONDS=180
+ExecStart=/usr/libexec/aerocore-instruments-setup
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=360
+
+[Install]
+WantedBy=multi-user.target
