@@ -97,6 +97,10 @@ jobs:
           HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
           HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
           OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
+          INSTRUMENTS_ENABLED: ${{ vars.INSTRUMENTS_ENABLED || 'true' }}
+          INSTRUMENTS_RELEASE_REPOSITORY: ${{ vars.INSTRUMENTS_RELEASE_REPOSITORY || 'AeroCore-IO/booster-installer' }}
+          INSTRUMENTS_VERSION: ${{ vars.INSTRUMENTS_VERSION || 'latest' }}
+          INSTRUMENTS_RELEASE_API_BASE: ${{ vars.INSTRUMENTS_RELEASE_API_BASE || 'https://api.github.com' }}
         run: |
           sudo -E $(command -v just) build \
             ${IMAGE_NAME} \
