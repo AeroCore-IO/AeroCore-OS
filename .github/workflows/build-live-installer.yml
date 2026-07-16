@@ -13,6 +13,7 @@ on:
     branches:
       - main
     paths:
+      - "Justfile"
       - "installer/**"
       - "just_scripts/build-live-installer.sh"
       - ".github/workflows/build-live-installer.yml"
@@ -34,7 +35,7 @@ jobs:
     env:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
-      BASE_IMAGE: ghcr.io/ublue-os/bazzite:stable
+      LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:43
       FEDORA_VERSION: "44"
 
     steps:
@@ -76,11 +77,21 @@ jobs:
 
       - name: Build live installer payload
         run: |
+          mkdir -p output
+          sudo podman tag \
+            "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \
+            localhost/aerocore-live-payload:latest
+          sudo podman save \
+            --format oci-archive \
+            --output output/install-payload.oci \
+            localhost/aerocore-live-payload:latest
+
           sudo podman build \
             --cap-add sys_admin \
             --security-opt label=disable \
-            --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
-            --build-arg "INSTALL_IMAGE_PAYLOAD=${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \
+            --build-arg "BASE_IMAGE=${LIVE_BASE_IMAGE}" \
+            --build-arg "INSTALL_IMAGE_PAYLOAD=localhost/aerocore-live-payload:latest" \
+            --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
             --tag localhost/aerocore-live-payload:latest \
             --file installer/Containerfile \
             .

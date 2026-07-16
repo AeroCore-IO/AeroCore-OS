@@ -5,10 +5,14 @@ set -euxo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_IMAGE=${BASE_IMAGE:?}
 INSTALL_IMAGE_PAYLOAD=${INSTALL_IMAGE_PAYLOAD:?}
+INSTALL_IMAGE_PAYLOAD_ARCHIVE=${INSTALL_IMAGE_PAYLOAD_ARCHIVE:-}
 
 # The installer is a live KDE environment.  Keep the installed system payload
 # separate: it is the AeroCore image, while BASE_IMAGE provides the live UI.
-dnf install -y \
+# Bazzite excludes some base packages from normal transactions. The live
+# installer needs Anaconda's exact NetworkManager dependencies, so clear the
+# excludes only for this dependency install.
+dnf --setopt=excludepkgs= install -y \
   anaconda-live \
   libblockdev-btrfs \
   libblockdev-dm \
@@ -22,9 +26,10 @@ if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
 fi
 
-# Make the install payload available to Anaconda.  When the build is running
-# with the host container store mounted, this avoids a second registry pull.
-if mountpoint -q /usr/lib/containers/storage; then
+# Make the install payload available to Anaconda.
+if [[ -n "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" && -f "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" ]]; then
+  podman load --storage-opt additionalimagestore='' < "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}"
+elif mountpoint -q /usr/lib/containers/storage; then
   podman save --format oci-archive "${INSTALL_IMAGE_PAYLOAD}" | \
     podman load --storage-opt additionalimagestore=''
 else

@@ -9,6 +9,8 @@ export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
 export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
+export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
+export INSTALLER_BUILDER_IMAGE := env_var_or_default("INSTALLER_BUILDER_IMAGE", "ghcr.io/jasonn3/build-container-installer:v1.5.0")
 export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
 export HOMEBREW_BOTTLE_DOMAIN := env_var_or_default("HOMEBREW_BOTTLE_DOMAIN", "")
 export HOMEBREW_API_DOMAIN := env_var_or_default("HOMEBREW_API_DOMAIN", "")
@@ -28,8 +30,8 @@ default:
     @just --list
 
 # Build a Bazzite-style live installer ISO
-build-live-installer:
-    @./just_scripts/build-live-installer.sh
+build-live-installer $target_image=("localhost/" + image_name) $tag=default_tag:
+    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-live-installer.sh
 
 # Boot the live installer ISO with QEMU
 run-live-installer:
