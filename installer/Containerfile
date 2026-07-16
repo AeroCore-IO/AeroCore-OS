@@ -3,13 +3,17 @@
 
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
 ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/AeroCore-IO/aerocore-bazzite-image:stable
+ARG INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci
 
 FROM ${BASE_IMAGE}
 
 ARG BASE_IMAGE
 ARG INSTALL_IMAGE_PAYLOAD
+ARG INSTALL_IMAGE_PAYLOAD_ARCHIVE
 
 RUN --mount=type=bind,source=.,target=/src \
+    --mount=type=bind,source=output/install-payload.oci,target=/install-payload.oci,ro \
     env BASE_IMAGE="${BASE_IMAGE}" \
         INSTALL_IMAGE_PAYLOAD="${INSTALL_IMAGE_PAYLOAD}" \
+        INSTALL_IMAGE_PAYLOAD_ARCHIVE="${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" \
         /src/installer/build.sh
