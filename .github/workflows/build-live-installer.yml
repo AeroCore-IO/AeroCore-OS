@@ -99,7 +99,7 @@ jobs:
 
       - name: Build ISO
         id: build
-        uses: Zeglius/titanoboa@revamp-pr
+        uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
           arch: x86_64
           image_name: aerocore-live-payload
