@@ -101,28 +101,20 @@ jobs:
         id: build
         uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
-          arch: x86_64
-          image_name: aerocore-live-payload
-          image_repo: localhost
-          variant: Kinoite
-          version: ${{ env.FEDORA_VERSION }}
-          image_tag: latest
-          iso_name: aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso
-          enable_cache_dnf: "false"
-          enable_cache_skopeo: "false"
-          enable_flatpak_dependencies: "false"
-          additional_templates: /github/workspace/installer/lorax_templates/remove_root_password_prompt.tmpl /github/workspace/installer/lorax_templates/set_default_user.tmpl
+          image-ref: localhost/aerocore-live-payload:latest
+          iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso
 
       - name: Display checksum
         run: |
-          cat "${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}-CHECKSUM"
+          iso_path="output/aerocore-os-${IMAGE_TAG}-amd64.iso"
+          sha256sum "${iso_path}" | tee "${iso_path}-CHECKSUM"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: aerocore-os-live-installer-${{ env.IMAGE_TAG }}
           path: |
-            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}
-            ${{ steps.build.outputs.iso_path }}/${{ steps.build.outputs.iso_name }}-CHECKSUM
+            output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso
+            output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso-CHECKSUM
           if-no-files-found: error
           compression-level: 0
