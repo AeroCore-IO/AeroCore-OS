@@ -9,14 +9,13 @@ on:
         default: latest
         type: string
   workflow_call:
-  push:
+  workflow_run:
+    workflows:
+      - Build container image
+    types:
+      - completed
     branches:
       - main
-    paths:
-      - "Justfile"
-      - "installer/**"
-      - "just_scripts/build-live-installer.sh"
-      - ".github/workflows/build-live-installer.yml"
 
 permissions: {}
 
@@ -27,6 +26,7 @@ concurrency:
 jobs:
   build-live-installer:
     name: Build KDE live installer
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
