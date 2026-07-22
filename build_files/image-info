@@ -1,0 +1,78 @@
+#!/usr/bin/bash
+
+set -eoux pipefail
+
+IMAGE_PRETTY_NAME="AeroCore OS"
+IMAGE_ID="aerocore"
+IMAGE_LIKE="fedora"
+HOME_URL="https://os.aerocore.com.cn"
+DOCUMENTATION_URL="https://docs.os.aerocore.com.cn"
+SUPPORT_URL="https://os.aerocore.com.cn/support"
+BUG_SUPPORT_URL="https://github.com/AeroCore-IO/AeroCore-OS/issues/"
+LOGO_ICON="distributor-logo"
+LOGO_COLOR="0;38;2;12;109;129"
+
+IMAGE_INFO="/usr/share/ublue-os/image-info.json"
+OSTREE_REGISTRY="${OSTREE_REGISTRY:-docker://ghcr.io}"
+OSTREE_NAMESPACE="${OSTREE_NAMESPACE:-$IMAGE_VENDOR}"
+IMAGE_REF="${OSTREE_IMAGE_REF:-ostree-image-signed:${OSTREE_REGISTRY%/}/$OSTREE_NAMESPACE/$IMAGE_NAME}"
+IMAGE_BRANCH_NORMALIZED="$IMAGE_BRANCH"
+BASE_IMAGE_NAME=$(jq -er '."base-image-name"' < "$IMAGE_INFO")
+
+if [[ $IMAGE_BRANCH_NORMALIZED == "main" ]]; then
+  IMAGE_BRANCH_NORMALIZED="stable"
+fi
+
+FEDORA_VERSION=$(rpm -E %fedora)
+
+mkdir -p "$(dirname "$IMAGE_INFO")"
+cat > "$IMAGE_INFO" <<EOF
+{
+  "image-name": "$IMAGE_NAME",
+  "image-vendor": "$IMAGE_VENDOR",
+  "image-ref": "$IMAGE_REF",
+  "image-tag": "stable",
+  "image-branch": "$IMAGE_BRANCH_NORMALIZED",
+  "base-image-name": "$BASE_IMAGE_NAME",
+  "fedora-version": "$FEDORA_VERSION",
+  "version": "$VERSION_TAG",
+  "version-pretty": "$VERSION_PRETTY"
+}
+EOF
+
+# Keep the display name consistent across desktop settings and os-release.
+sed -i "s/^VARIANT_ID=.*/VARIANT_ID=$IMAGE_ID/" /usr/lib/os-release
+sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"$IMAGE_PRETTY_NAME\"/" /usr/lib/os-release
+sed -i "s/^NAME=.*/NAME=\"$IMAGE_PRETTY_NAME\"/" /usr/lib/os-release
+sed -i "s|^HOME_URL=.*|HOME_URL=\"$HOME_URL\"|" /usr/lib/os-release
+sed -i "s|^DOCUMENTATION_URL=.*|DOCUMENTATION_URL=\"$DOCUMENTATION_URL\"|" /usr/lib/os-release
+sed -i "s|^SUPPORT_URL=.*|SUPPORT_URL=\"$SUPPORT_URL\"|" /usr/lib/os-release
+sed -i "s|^BUG_REPORT_URL=.*|BUG_REPORT_URL=\"$BUG_SUPPORT_URL\"|" /usr/lib/os-release
+sed -i "s|^CPE_NAME=.*|CPE_NAME=\"cpe:/o:universal-blue:$IMAGE_ID\"|" /usr/lib/os-release
+sed -i "s/^DEFAULT_HOSTNAME=.*/DEFAULT_HOSTNAME=\"$IMAGE_ID\"/" /usr/lib/os-release
+sed -i "s/^ID=fedora/ID=$IMAGE_ID\nID_LIKE=\"$IMAGE_LIKE\"/" /usr/lib/os-release
+sed -i "s/^LOGO=.*/LOGO=$LOGO_ICON/" /usr/lib/os-release
+sed -i "s/^ANSI_COLOR=.*/ANSI_COLOR=\"$LOGO_COLOR\"/" /usr/lib/os-release
+sed -i "/^REDHAT_BUGZILLA_PRODUCT=/d; /^REDHAT_BUGZILLA_PRODUCT_VERSION=/d; /^REDHAT_SUPPORT_PRODUCT=/d; /^REDHAT_SUPPORT_PRODUCT_VERSION=/d" /usr/lib/os-release
+sed -i "s|^VERSION_CODENAME=.*|VERSION_CODENAME=\"Deck\"|" /usr/lib/os-release
+
+echo "$IMAGE_PRETTY_NAME release $FEDORA_VERSION (Deck)" > /etc/system-release
+
+if grep -q '^BUILD_ID=' /usr/lib/os-release; then
+  sed -i "s/^BUILD_ID=.*/BUILD_ID=\"$VERSION_PRETTY\"/" /usr/lib/os-release
+else
+  echo "BUILD_ID=\"$VERSION_PRETTY\"" >> /usr/lib/os-release
+fi
+
+if grep -q '^BOOTLOADER_NAME=' /usr/lib/os-release; then
+  sed -i "s/^BOOTLOADER_NAME=.*/BOOTLOADER_NAME=\"$IMAGE_PRETTY_NAME $VERSION_PRETTY\"/" /usr/lib/os-release
+else
+  echo "BOOTLOADER_NAME=\"$IMAGE_PRETTY_NAME $VERSION_PRETTY\"" >> /usr/lib/os-release
+fi
+
+# Keep hibernation images tied to this exact image version.
+if grep -q '^IMAGE_ID=' /usr/lib/os-release; then
+  sed -i "s/^IMAGE_ID=.*/IMAGE_ID=\"$IMAGE_NAME-$VERSION_TAG\"/" /usr/lib/os-release
+else
+  echo "IMAGE_ID=\"$IMAGE_NAME-$VERSION_TAG\"" >> /usr/lib/os-release
+fi

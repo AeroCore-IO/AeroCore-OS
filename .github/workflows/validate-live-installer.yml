@@ -1,0 +1,40 @@
+name: Validate live installer
+
+on:
+  pull_request:
+    paths:
+      - "Justfile"
+      - "installer/**"
+      - "just_scripts/build-live-installer.sh"
+      - ".github/workflows/build-live-installer.yml"
+      - ".github/workflows/validate-live-installer.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-live-installer:
+    name: Validate live installer inputs
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Install just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+
+      - name: Validate workflow YAML
+        run: |
+          ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |file| YAML.load_file(file) }'
+
+      - name: Validate Justfile formatting
+        run: |
+          just --unstable --fmt --check -f Justfile
+
+      - name: Validate build scripts
+        run: |
+          for script in build_files/*.sh installer/*.sh just_scripts/*.sh; do
+            bash -n "$script"
+          done
+          bash -n system_files/usr/libexec/aerocore-instruments-setup
