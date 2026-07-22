@@ -9,17 +9,33 @@ export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
 export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
+export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
+export INSTALLER_BUILDER_IMAGE := env_var_or_default("INSTALLER_BUILDER_IMAGE", "ghcr.io/jasonn3/build-container-installer:v1.5.0")
 export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
 export HOMEBREW_BOTTLE_DOMAIN := env_var_or_default("HOMEBREW_BOTTLE_DOMAIN", "")
 export HOMEBREW_API_DOMAIN := env_var_or_default("HOMEBREW_API_DOMAIN", "")
+export INSTRUMENTS_ENABLED := env_var_or_default("INSTRUMENTS_ENABLED", "true")
+export INSTRUMENTS_RELEASE_REPOSITORY := env_var_or_default("INSTRUMENTS_RELEASE_REPOSITORY", "AeroCore-IO/booster-installer")
+export INSTRUMENTS_VERSION := env_var_or_default("INSTRUMENTS_VERSION", "latest")
+export INSTRUMENTS_RELEASE_API_BASE := env_var_or_default("INSTRUMENTS_RELEASE_API_BASE", "https://api.github.com")
 
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
+alias build-live-iso := build-live-installer
+alias run-live-iso := run-live-installer
 
 [private]
 default:
     @just --list
+
+# Build a Bazzite-style live installer ISO
+build-live-installer $target_image=("localhost/" + image_name) $tag=default_tag:
+    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-live-installer.sh
+
+# Boot the live installer ISO with QEMU
+run-live-installer:
+    @./just_scripts/run-live-installer.sh
 
 # Check Just Syntax
 [group('Just')]
@@ -104,7 +120,7 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN; do
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
@@ -348,7 +364,7 @@ build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build
 
 # Build an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso.toml")
+build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso-kde.toml")
 
 # Rebuild a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
@@ -360,7 +376,7 @@ rebuild-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_reb
 
 # Rebuild an ISO virtual machine image
 [group('Build Virtal Machine Image')]
-rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "disk_config/iso.toml")
+rebuild-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_rebuild-bib target_image tag "iso" "disk_config/iso-kde.toml")
 
 # Run a virtual machine with the specified image type and configuration
 _run-vm $target_image $tag $type $config:
@@ -414,7 +430,7 @@ run-vm-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-
 
 # Run a virtual machine from an ISO
 [group('Run Virtal Machine')]
-run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "disk_config/iso.toml")
+run-vm-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_run-vm target_image tag "iso" "disk_config/iso-kde.toml")
 
 # Run a virtual machine using systemd-vmspawn
 [group('Run Virtal Machine')]
