@@ -2,6 +2,15 @@
 
 set -ouex pipefail
 
+case "${BASE_IMAGE:-}" in
+  ghcr.io/ublue-os/bazzite-deck:* | ghcr.io/ublue-os/bazzite-deck@*)
+    ;;
+  *)
+    echo "AeroCore OS only supports bazzite-deck BASE_IMAGE values for HTPC game-mode builds: ${BASE_IMAGE:-<unset>}" >&2
+    exit 1
+    ;;
+esac
+
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 

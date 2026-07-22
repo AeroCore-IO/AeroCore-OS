@@ -7,6 +7,7 @@ COPY system_files /system_files
 
 # Base Image
 FROM ${BASE_IMAGE}
+ARG BASE_IMAGE
 ARG IMAGE_NAME="aerocore-os"
 ARG IMAGE_VENDOR="AeroCore-IO"
 ARG IMAGE_BRANCH="stable"
@@ -16,7 +17,6 @@ ARG OSTREE_IMAGE_REF=""
 ## Other possible base images include:
 # ghcr.io/ublue-os/bazzite-deck:testing
 # ghcr.io/ublue-os/bazzite-deck:stable-43.20260420
-# ghcr.io/ublue-os/bazzite:stable
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
