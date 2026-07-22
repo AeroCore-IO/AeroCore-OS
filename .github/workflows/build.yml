@@ -69,7 +69,7 @@ jobs:
         run: |
           IMAGE_NAME=$(just image_name)
 
-          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> "$GITHUB_ENV"
 
       - name: Default Tag
         id: gen-default-tag
@@ -80,13 +80,13 @@ jobs:
             DEFAULT_TAG=$(just generate-default-tag)
           fi
 
-          echo "DEFAULT_TAG=${DEFAULT_TAG}" >> $GITHUB_ENV
+          echo "DEFAULT_TAG=${DEFAULT_TAG}" >> "$GITHUB_ENV"
 
       - name: Prepare environment
         run: |
           # Lowercase the image uri https://github.com/macbre/push-to-ghcr/issues/12
-          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> "$GITHUB_ENV"
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> "$GITHUB_ENV"
 
       # This actually builds the container image
       - name: Build Image
@@ -102,17 +102,17 @@ jobs:
           INSTRUMENTS_VERSION: ${{ vars.INSTRUMENTS_VERSION || 'latest' }}
           INSTRUMENTS_RELEASE_API_BASE: ${{ vars.INSTRUMENTS_RELEASE_API_BASE || 'https://api.github.com' }}
         run: |
-          sudo -E $(command -v just) build \
-            ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+          sudo -E "$(command -v just)" build \
+            "${IMAGE_NAME}" \
+            "${DEFAULT_TAG}"
 
       # This is optional, this provides smaller delta updates
       - name: Rechunk with rpm-ostree
         id: rechunk
         run: |
-          sudo -E $(command -v just) ostree-rechunk \
-            ${IMAGE_NAME} \
-            ${DEFAULT_TAG}
+          sudo -E "$(command -v just)" ostree-rechunk \
+            "${IMAGE_NAME}" \
+            "${DEFAULT_TAG}"
 
       # If you are feeling adventurous, use the new distro agnostic rechunker
       # https://github.com/coreos/chunkah
@@ -131,20 +131,20 @@ jobs:
             alias_tags="testing ${DEFAULT_TAG}"
           else
             alias_tags="$(just generate-build-tags \
-                          ${IMAGE_NAME} \
-                          ${DEFAULT_TAG})"
+            "${IMAGE_NAME}" \
+            "${DEFAULT_TAG}")"
           fi
 
           echo "Tags for this Action..."
           echo "${alias_tags}"
-          echo "alias_tags=${alias_tags}" >> $GITHUB_OUTPUT
+          echo "alias_tags=${alias_tags}" >> "$GITHUB_OUTPUT"
 
       - name: Tag Image
         id: tag-images
         env:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
         run: |
-          sudo -E $(command -v just) tag-images \
+          sudo -E "$(command -v just)" tag-images \
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}" \
             "${ALIAS_TAGS}"
@@ -167,12 +167,13 @@ jobs:
         run: |
           set -euox pipefail
           for tag in ${ALIAS_TAGS}; do
-            sudo -E podman push --digestfile=/tmp/digestfile ${IMAGE_NAME}:${tag} ${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}
+            sudo -E podman push --digestfile=/tmp/digestfile \
+              "${IMAGE_NAME}:${tag}" "${IMAGE_REGISTRY}/${IMAGE_NAME}:${tag}"
           done
 
           digest=$(< /tmp/digestfile)
 
-          echo "digest=${digest}" >> $GITHUB_OUTPUT
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       # This section is optional and only needs to be enabled if you plan on distributing
       # your project for others to consume. You will need to create a public and private key
@@ -194,4 +195,4 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
-          cosign sign -y --key env://COSIGN_PRIVATE_KEY ${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}
+          cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
