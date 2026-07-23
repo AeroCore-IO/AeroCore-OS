@@ -35,6 +35,7 @@ jobs:
     env:
       IMAGE_REGISTRY: ghcr.io/${{ github.repository_owner }}
       IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
+      ISO_FILE_TAG: ${{ github.ref_name == 'testing' && 'testing' || (inputs.image_tag || 'latest') }}
       # Keep these aligned with the Fedora major used by the target bazzite-deck base image.
       LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:43
       FEDORA_VERSION: "43"
@@ -102,19 +103,51 @@ jobs:
         uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
           image-ref: localhost/aerocore-live-payload:latest
-          iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso
+          iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
 
       - name: Display checksum
         run: |
-          iso_path="output/aerocore-os-${IMAGE_TAG}-amd64.iso"
-          sha256sum "${iso_path}" | tee "${iso_path}-CHECKSUM"
+          iso_path="output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
+          checksum_path="${iso_path}-CHECKSUM"
+          sha256sum "${iso_path}" | tee "${checksum_path}"
+          {
+            echo "# ISO Checksum (SHA256)"
+            echo
+            echo "ISO: $(basename "${iso_path}")"
+            echo
+            echo '```'
+            cat "${checksum_path}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare ISO upload files
+        run: |
+          iso_path="output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
+          upload_dir="output/upload"
+          mkdir -p "${upload_dir}"
+          mv "${iso_path}" "${upload_dir}/"
+          mv "${iso_path}-CHECKSUM" "${upload_dir}/"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: aerocore-os-live-installer-${{ env.IMAGE_TAG }}
-          path: |
-            output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso
-            output/aerocore-os-${{ env.IMAGE_TAG }}-amd64.iso-CHECKSUM
+          name: aerocore-os-live-installer-${{ env.ISO_FILE_TAG }}
+          path: output/upload
           if-no-files-found: error
           compression-level: 0
+
+      - name: Upload ISO and checksum to R2
+        if: github.ref_name == 'testing' || github.ref_name == 'main'
+        shell: bash
+        env:
+          RCLONE_CONFIG_R2_TYPE: s3
+          RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+          RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          RCLONE_CONFIG_R2_REGION: auto
+          RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          SOURCE_DIR: ${{ github.workspace }}/output/upload
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rclone
+          rclone copy "$SOURCE_DIR" R2:bazzite
