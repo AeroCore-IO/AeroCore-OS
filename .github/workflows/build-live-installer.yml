@@ -137,24 +137,34 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Prepare ISO upload files
+      - name: Move ISO to upload directory
+        id: upload-directory
+        shell: bash
         run: |
-          iso_path="output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
-          upload_dir="output/upload"
-          mkdir -p "${upload_dir}"
-          mv "${iso_path}" "${upload_dir}/"
-          mv "${iso_path}-CHECKSUM" "${upload_dir}/"
+          iso_upload_dir="${{ github.workspace }}/output/upload"
+          iso_path="${{ github.workspace }}/output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
+          iso_name="$(basename "${iso_path}")"
 
-      - name: Upload ISO artifact
+          mkdir -p "${iso_upload_dir}"
+          mv "${iso_path}" "${iso_upload_dir}/"
+          (
+            cd "${iso_upload_dir}"
+            sha256sum "${iso_name}" | tee "${iso_name}-CHECKSUM"
+          )
+          echo "iso-upload-dir=${iso_upload_dir}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload ISO checksum to Job Artifacts
+        if: github.ref_name == 'testing'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: aerocore-os-live-installer-${{ env.ISO_FILE_TAG }}
-          path: output/upload
+          name: aerocore-os-live-installer-${{ env.ISO_FILE_TAG }}-checksum
+          path: ${{ steps.upload-directory.outputs.iso-upload-dir }}/*-CHECKSUM
           if-no-files-found: error
+          retention-days: 1
           compression-level: 0
 
       - name: Upload ISO and checksum to R2
-        if: github.ref_name == 'testing' || github.ref_name == 'main'
+        if: github.event_name == 'workflow_dispatch' && github.ref_name == 'main'
         shell: bash
         env:
           RCLONE_CONFIG_R2_TYPE: s3
@@ -163,7 +173,7 @@ jobs:
           RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           RCLONE_CONFIG_R2_REGION: auto
           RCLONE_CONFIG_R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          SOURCE_DIR: ${{ github.workspace }}/output/upload
+          SOURCE_DIR: ${{ steps.upload-directory.outputs.iso-upload-dir }}
         run: |
           sudo apt-get update
           sudo apt-get install -y rclone
