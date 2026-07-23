@@ -105,8 +105,25 @@ jobs:
           image-ref: localhost/aerocore-live-payload:latest
           iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
 
-      - name: Display checksum
+      - name: Normalize ISO output path
+        shell: bash
+        env:
+          GENERATED_ISO: ${{ steps.build.outputs.iso-dest }}
+          EXPECTED_ISO: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
         run: |
+          if [[ ! -f "${GENERATED_ISO}" ]]; then
+            echo "::error::Generated ISO does not exist at ${GENERATED_ISO}"
+            exit 1
+          fi
+          if [[ "${GENERATED_ISO}" != "${EXPECTED_ISO}" ]]; then
+            mkdir -p "$(dirname "${EXPECTED_ISO}")"
+            mv "${GENERATED_ISO}" "${EXPECTED_ISO}"
+          fi
+
+      - name: Display checksum
+        shell: bash
+        run: |
+          set -o pipefail
           iso_path="output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
           checksum_path="${iso_path}-CHECKSUM"
           sha256sum "${iso_path}" | tee "${checksum_path}"
