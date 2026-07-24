@@ -19,6 +19,7 @@ dnf --setopt=excludepkgs= install -y \
   libblockdev-lvm \
   dracut-live \
   livesys-scripts \
+  grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
 # Apply the same AeroCore overlay to the live session where possible.
@@ -62,6 +63,7 @@ if compgen -G '/usr/lib/efi/*/*/EFI' >/dev/null; then
 fi
 
 # bootc-image-builder needs the Fedora live ISO fallback EFI loader.
+mkdir -p /boot/efi/EFI/BOOT
 cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi
 
 systemd-firstboot --timezone UTC
