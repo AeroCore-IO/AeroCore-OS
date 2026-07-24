@@ -61,5 +61,8 @@ if compgen -G '/usr/lib/efi/*/*/EFI' >/dev/null; then
   cp -a /usr/lib/efi/*/*/EFI /boot/efi/
 fi
 
+# bootc-image-builder needs the Fedora live ISO fallback EFI loader.
+cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi
+
 systemd-firstboot --timezone UTC
 dnf clean all
