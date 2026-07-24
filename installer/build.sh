@@ -91,6 +91,25 @@ fi
 # Tell Anaconda to install the bootc container that was loaded above.
 mkdir -p /var/lib/rpm-state
 cat >> /usr/share/anaconda/interactive-defaults.ks <<EOF
+%pre-install --log=/tmp/aerocore-var-tmp.log
+set -eux
+target_tmp=
+for root in /mnt/sysimage /mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_tmp=\${root}/var/tmp
+        break
+    fi
+done
+if [ x\${target_tmp} = x ]; then
+    echo No mounted target system found for /var/tmp bind mount >&2
+    exit 1
+fi
+mkdir -p \${target_tmp}
+chmod 1777 \${target_tmp}
+mount --bind \${target_tmp} /var/tmp
+df -h /var/tmp \${target_tmp}
+%end
+
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
 EOF
 
