@@ -97,7 +97,7 @@ fi
   --volume "${project_root}/output:/build-container-installer/build" \
   --volume "${project_root}/installer/lorax_templates:/additional_lorax_templates:ro" \
   "${installer_builder_image}" \
-  ADDITIONAL_TEMPLATES="/additional_lorax_templates/remove_root_password_prompt.tmpl /additional_lorax_templates/set_default_user.tmpl" \
+  ADDITIONAL_TEMPLATES="/additional_lorax_templates/remove_root_password_prompt.tmpl /additional_lorax_templates/set_default_user.tmpl /additional_lorax_templates/use_target_var_tmp.tmpl" \
   ARCH="x86_64" \
   ENABLE_CACHE_DNF="false" \
   ENABLE_CACHE_SKOPEO="false" \
