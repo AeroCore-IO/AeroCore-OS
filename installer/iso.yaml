@@ -1,10 +1,10 @@
-label: "AeroCore-Live"
+label: "AeroCore-Installer"
 grub2:
   timeout: 3
   entries:
     - name: "Launch AeroCore Installer"
-      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=AeroCore-Live enforcing=0 rd.live.image"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=AeroCore-Installer enforcing=0 rd.live.image"
       initrd: "/images/pxeboot/initrd.img"
     - name: "Launch AeroCore Installer (Basic Graphics Mode)"
-      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=AeroCore-Live enforcing=0 rd.live.image nomodeset"
+      linux: "/images/pxeboot/vmlinuz quiet rhgb root=live:CDLABEL=AeroCore-Installer enforcing=0 rd.live.image nomodeset"
       initrd: "/images/pxeboot/initrd.img"
