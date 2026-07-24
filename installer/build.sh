@@ -58,13 +58,21 @@ sed -i 's/^livesys_session=.*/livesys_session=kde/' /etc/sysconfig/livesys
 systemctl enable livesys.service livesys-late.service
 
 mkdir -p /boot/efi
-if compgen -G '/usr/lib/efi/*/*/EFI' >/dev/null; then
-  cp -a /usr/lib/efi/*/*/EFI /boot/efi/
+efi_dir="$(find /usr/lib/efi -type d -name EFI -print -quit 2>/dev/null || true)"
+if [[ -n "${efi_dir}" ]]; then
+  cp -a "${efi_dir}" /boot/efi/
 fi
 
 # bootc-image-builder needs the Fedora live ISO fallback EFI loader.
+grubx64="$(find /usr/lib/efi /boot/efi -type f \
+  -path '*/EFI/fedora/grubx64.efi' -print -quit 2>/dev/null || true)"
+if [[ -z "${grubx64}" ]]; then
+  echo "grubx64.efi was not found in the installed EFI tree" >&2
+  find /usr/lib/efi /boot/efi -type f -path '*/EFI/*' -print >&2 || true
+  exit 1
+fi
 mkdir -p /boot/efi/EFI/BOOT
-cp -v /boot/efi/EFI/fedora/grubx64.efi /boot/efi/EFI/BOOT/fbx64.efi
+cp -v "${grubx64}" /boot/efi/EFI/BOOT/fbx64.efi
 
 systemd-firstboot --timezone UTC
 dnf clean all
