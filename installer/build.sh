@@ -78,6 +78,8 @@ if [[ -z "${grubx64}" ]]; then
   exit 1
 fi
 mkdir -p /boot/efi/EFI/BOOT
+# UEFI removable-media fallback; keep fbx64.efi for bootc-image-builder.
+cp -v "${grubx64}" /boot/efi/EFI/BOOT/BOOTX64.EFI
 cp -v "${grubx64}" /boot/efi/EFI/BOOT/fbx64.efi
 
 systemd-firstboot --timezone UTC
