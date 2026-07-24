@@ -22,6 +22,12 @@ dnf --setopt=excludepkgs= install -y \
   grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
+# Kinoite can carry the EFI packages in the RPM database without their files
+# materialized in the container filesystem. Restore the files for the ISO.
+dnf --setopt=excludepkgs= reinstall -y \
+  grub2-efi-x64 \
+  grub2-efi-x64-cdboot
+
 # Apply the same AeroCore overlay to the live session where possible.
 if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
