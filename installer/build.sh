@@ -39,6 +39,45 @@ if [[ -d "${BRANDING_DIR}" ]]; then
   cp -a "${BRANDING_DIR}/." /usr/share/anaconda/pixmaps/
 fi
 
+# Installer-only overrides, kept separate from the installed AeroCore payload.
+if [[ -d "${SCRIPT_DIR}/system_files/overrides" ]]; then
+  cp -a "${SCRIPT_DIR}/system_files/overrides/." /
+fi
+
+# Plasma's live-session launcher defaults to start-here, and Fedora keeps
+# LOGO=fedora-logo-icon in the base live environment.
+for size in 16x16 22x22 24x24 32x32 36x36 48x48 64x64 96x96 128x128 256x256; do
+  icon_dir="/usr/share/icons/hicolor/${size}"
+  if [[ -f "${icon_dir}/bazzite-logo-icon.png" ]]; then
+    mkdir -p "${icon_dir}/apps" "${icon_dir}/places"
+    cp -f "${icon_dir}/bazzite-logo-icon.png" "${icon_dir}/apps/fedora-logo-icon.png"
+    cp -f "${icon_dir}/bazzite-logo-icon.png" "${icon_dir}/places/start-here.png"
+  fi
+done
+
+if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
+  mkdir -p /usr/share/icons/hicolor/scalable/apps /usr/share/icons/hicolor/scalable/places
+  cp -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
+    /usr/share/icons/hicolor/scalable/apps/start-here.svg
+  cp -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
+    /usr/share/icons/hicolor/scalable/places/start-here.svg
+fi
+
+sed -i 's/^LOGO=.*/LOGO=distributor-logo/' /usr/lib/os-release
+
+for desktop_file in \
+  /usr/share/applications/liveinst.desktop \
+  /usr/share/applications/org.fedoraproject.AnacondaInstaller.desktop \
+  /usr/share/applications/anaconda.desktop; do
+  if [[ -f "${desktop_file}" ]]; then
+    sed -i 's/^Icon=.*/Icon=org.fedoraproject.AnacondaInstaller/' "${desktop_file}"
+  fi
+done
+
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f /usr/share/icons/hicolor || true
+fi
+
 # Make the install payload available to Anaconda.
 if [[ -n "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" && -f "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" ]]; then
   podman load --storage-opt additionalimagestore='' < "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}"
