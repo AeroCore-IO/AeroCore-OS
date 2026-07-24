@@ -1,20 +1,20 @@
-name: Validate live installer
+name: Validate installer ISO
 
 on:
   pull_request:
     paths:
       - "Justfile"
       - "installer/**"
-      - "just_scripts/build-live-installer.sh"
-      - ".github/workflows/build-live-installer.yml"
-      - ".github/workflows/validate-live-installer.yml"
+      - "just_scripts/build-installer-iso.sh"
+      - ".github/workflows/build-installer-iso.yml"
+      - ".github/workflows/validate-installer-iso.yml"
 
 permissions:
   contents: read
 
 jobs:
-  validate-live-installer:
-    name: Validate live installer inputs
+  validate-installer-iso:
+    name: Validate installer ISO inputs
     runs-on: ubuntu-24.04
 
     steps:

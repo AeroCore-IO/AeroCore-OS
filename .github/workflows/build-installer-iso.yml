@@ -1,4 +1,4 @@
-name: Build live installer
+name: Build installer ISO
 
 on:
   workflow_dispatch:
@@ -24,8 +24,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-live-installer:
-    name: Build KDE live installer
+  build-installer-iso:
+    name: Build KDE installer ISO
     if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-24.04
     permissions:
@@ -77,24 +77,24 @@ jobs:
         run: |
           sudo podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
-      - name: Build live installer payload
+      - name: Build installer ISO payload
         run: |
           mkdir -p output
           sudo podman tag \
             "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \
-            localhost/aerocore-live-payload:latest
+            localhost/aerocore-installer-payload:latest
           sudo podman save \
             --format oci-archive \
             --output output/install-payload.oci \
-            localhost/aerocore-live-payload:latest
+            localhost/aerocore-installer-payload:latest
 
           sudo podman build \
             --cap-add sys_admin \
             --security-opt label=disable \
             --build-arg "BASE_IMAGE=${LIVE_BASE_IMAGE}" \
-            --build-arg "INSTALL_IMAGE_PAYLOAD=localhost/aerocore-live-payload:latest" \
+            --build-arg "INSTALL_IMAGE_PAYLOAD=localhost/aerocore-installer-payload:latest" \
             --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
-            --tag localhost/aerocore-live-payload:latest \
+            --tag localhost/aerocore-installer-payload:latest \
             --file installer/Containerfile \
             .
 
@@ -102,7 +102,7 @@ jobs:
         id: build
         uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
-          image-ref: localhost/aerocore-live-payload:latest
+          image-ref: localhost/aerocore-installer-payload:latest
           iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
 
       - name: Normalize ISO output path
@@ -157,7 +157,7 @@ jobs:
         if: github.ref_name == 'testing'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: aerocore-os-live-installer-${{ env.ISO_FILE_TAG }}-checksum
+          name: aerocore-os-installer-iso-${{ env.ISO_FILE_TAG }}-checksum
           path: ${{ steps.upload-directory.outputs.iso-upload-dir }}/*-CHECKSUM
           if-no-files-found: error
           retention-days: 1
