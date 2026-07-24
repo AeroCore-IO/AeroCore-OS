@@ -33,6 +33,12 @@ if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
 fi
 
+BRANDING_DIR="${SCRIPT_DIR}/branding"
+if [[ -d "${BRANDING_DIR}" ]]; then
+  mkdir -p /usr/share/anaconda/pixmaps
+  cp -a "${BRANDING_DIR}/." /usr/share/anaconda/pixmaps/
+fi
+
 # Make the install payload available to Anaconda.
 if [[ -n "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" && -f "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" ]]; then
   podman load --storage-opt additionalimagestore='' < "${INSTALL_IMAGE_PAYLOAD_ARCHIVE}"
