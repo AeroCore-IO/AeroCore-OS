@@ -9,13 +9,6 @@ on:
         default: latest
         type: string
   workflow_call:
-  workflow_run:
-    workflows:
-      - Build container image
-    types:
-      - completed
-    branches:
-      - main
 
 permissions: {}
 
@@ -26,7 +19,6 @@ concurrency:
 jobs:
   build-installer-iso:
     name: Build KDE installer ISO
-    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-24.04
     permissions:
       contents: read
