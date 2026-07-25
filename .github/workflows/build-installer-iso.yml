@@ -74,7 +74,7 @@ jobs:
           mkdir -p output
           sudo podman tag \
             "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \
-            localhost/aerocore-installer-payload:latest
+            localhost/aerocore-os-installer:latest
           sudo podman save \
             --format oci-archive \
             --output output/install-payload.oci \
@@ -86,7 +86,7 @@ jobs:
             --build-arg "BASE_IMAGE=${LIVE_BASE_IMAGE}" \
             --build-arg "INSTALL_IMAGE_PAYLOAD=localhost/aerocore-installer-payload:latest" \
             --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
-            --tag localhost/aerocore-installer-payload:latest \
+            --tag localhost/aerocore-os-installer:latest \
             --file installer/Containerfile \
             .
 
@@ -94,7 +94,7 @@ jobs:
         id: build
         uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
-          image-ref: localhost/aerocore-installer-payload:latest
+          image-ref: localhost/aerocore-os-installer:latest
           iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
 
       - name: Normalize ISO output path
