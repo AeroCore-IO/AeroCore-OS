@@ -111,6 +111,22 @@ df -h /var/tmp \${target_tmp}
 %end
 
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
+
+%post --nochroot --log=/tmp/aerocore-hostname.log
+set -eux
+target_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_root=\${root}
+        break
+    fi
+done
+if [ x\${target_root} = x ]; then
+    echo No mounted target system found for hostname setup >&2
+    exit 1
+fi
+systemd-firstboot --root=\${target_root} --hostname=aerocore-os
+%end
 EOF
 
 mkdir -p /usr/lib/bootc-image-builder
@@ -146,5 +162,5 @@ mkdir -p /boot/efi/EFI/BOOT
 cp -v "${grubx64}" /boot/efi/EFI/BOOT/BOOTX64.EFI
 cp -v "${grubx64}" /boot/efi/EFI/BOOT/fbx64.efi
 
-systemd-firstboot --timezone UTC
+systemd-firstboot --hostname aerocore-os --timezone UTC
 dnf clean all

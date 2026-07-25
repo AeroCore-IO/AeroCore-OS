@@ -2,7 +2,7 @@
 # The image installed to disk is supplied separately as INSTALL_IMAGE_PAYLOAD.
 
 ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable
-ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/AeroCore-IO/aerocore-bazzite-image:stable
+ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/AeroCore-IO/aerocore-os:stable
 ARG INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci
 
 FROM ${BASE_IMAGE}
