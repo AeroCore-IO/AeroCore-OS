@@ -19,11 +19,63 @@ dnf --setopt=excludepkgs= install -y \
   libblockdev-lvm \
   dracut-live \
   livesys-scripts \
+  grub2-efi-x64 \
+  grub2-efi-x64-cdboot
+
+# Kinoite can carry the EFI packages in the RPM database without their files
+# materialized in the container filesystem. Restore the files for the ISO.
+dnf --setopt=excludepkgs= reinstall -y \
+  grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
 # Apply the same AeroCore overlay to the live session where possible.
 if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
+fi
+
+BRANDING_DIR="${SCRIPT_DIR}/branding"
+if [[ -d "${BRANDING_DIR}" ]]; then
+  mkdir -p /usr/share/anaconda/pixmaps
+  cp -a "${BRANDING_DIR}/." /usr/share/anaconda/pixmaps/
+fi
+
+# Installer-only overrides, kept separate from the installed AeroCore payload.
+if [[ -d "${SCRIPT_DIR}/system_files/overrides" ]]; then
+  cp -a "${SCRIPT_DIR}/system_files/overrides/." /
+fi
+
+# Plasma's live-session launcher defaults to start-here, and Fedora keeps
+# LOGO=fedora-logo-icon in the base live environment.
+for size in 16x16 22x22 24x24 32x32 36x36 48x48 64x64 96x96 128x128 256x256; do
+  icon_dir="/usr/share/icons/hicolor/${size}"
+  if [[ -f "${icon_dir}/bazzite-logo-icon.png" ]]; then
+    mkdir -p "${icon_dir}/apps" "${icon_dir}/places"
+    cp -f "${icon_dir}/bazzite-logo-icon.png" "${icon_dir}/apps/fedora-logo-icon.png"
+    cp -f "${icon_dir}/bazzite-logo-icon.png" "${icon_dir}/places/start-here.png"
+  fi
+done
+
+if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
+  mkdir -p /usr/share/icons/hicolor/scalable/apps /usr/share/icons/hicolor/scalable/places
+  cp -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
+    /usr/share/icons/hicolor/scalable/apps/start-here.svg
+  cp -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
+    /usr/share/icons/hicolor/scalable/places/start-here.svg
+fi
+
+sed -i 's/^LOGO=.*/LOGO=distributor-logo/' /usr/lib/os-release
+
+for desktop_file in \
+  /usr/share/applications/liveinst.desktop \
+  /usr/share/applications/org.fedoraproject.AnacondaInstaller.desktop \
+  /usr/share/applications/anaconda.desktop; do
+  if [[ -f "${desktop_file}" ]]; then
+    sed -i 's/^Icon=.*/Icon=org.fedoraproject.AnacondaInstaller/' "${desktop_file}"
+  fi
+done
+
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f /usr/share/icons/hicolor || true
 fi
 
 # Make the install payload available to Anaconda.
@@ -39,7 +91,42 @@ fi
 # Tell Anaconda to install the bootc container that was loaded above.
 mkdir -p /var/lib/rpm-state
 cat >> /usr/share/anaconda/interactive-defaults.ks <<EOF
+%pre-install --log=/tmp/aerocore-var-tmp.log
+set -eux
+target_tmp=
+for root in /mnt/sysimage /mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_tmp=\${root}/var/tmp
+        break
+    fi
+done
+if [ x\${target_tmp} = x ]; then
+    echo No mounted target system found for /var/tmp bind mount >&2
+    exit 1
+fi
+mkdir -p \${target_tmp}
+chmod 1777 \${target_tmp}
+mount --bind \${target_tmp} /var/tmp
+df -h /var/tmp \${target_tmp}
+%end
+
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
+
+%post --nochroot --log=/tmp/aerocore-hostname.log
+set -eux
+target_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_root=\${root}
+        break
+    fi
+done
+if [ x\${target_root} = x ]; then
+    echo No mounted target system found for hostname setup >&2
+    exit 1
+fi
+systemd-firstboot --root=\${target_root} --hostname=aerocore-os
+%end
 EOF
 
 mkdir -p /usr/lib/bootc-image-builder
@@ -57,9 +144,23 @@ sed -i 's/^livesys_session=.*/livesys_session=kde/' /etc/sysconfig/livesys
 systemctl enable livesys.service livesys-late.service
 
 mkdir -p /boot/efi
-if compgen -G '/usr/lib/efi/*/*/EFI' >/dev/null; then
-  cp -a /usr/lib/efi/*/*/EFI /boot/efi/
+efi_dir="$(find /usr/lib/efi -type d -name EFI -print -quit 2>/dev/null || true)"
+if [[ -n "${efi_dir}" ]]; then
+  cp -a "${efi_dir}" /boot/efi/
 fi
 
-systemd-firstboot --timezone UTC
+# bootc-image-builder needs the Fedora live ISO fallback EFI loader.
+grubx64="$(find /usr/lib/efi /boot/efi -type f \
+  -path '*/EFI/fedora/grubx64.efi' -print -quit 2>/dev/null || true)"
+if [[ -z "${grubx64}" ]]; then
+  echo "grubx64.efi was not found in the installed EFI tree" >&2
+  find /usr/lib/efi /boot/efi -type f -path '*/EFI/*' -print >&2 || true
+  exit 1
+fi
+mkdir -p /boot/efi/EFI/BOOT
+# UEFI removable-media fallback; keep fbx64.efi for bootc-image-builder.
+cp -v "${grubx64}" /boot/efi/EFI/BOOT/BOOTX64.EFI
+cp -v "${grubx64}" /boot/efi/EFI/BOOT/fbx64.efi
+
+systemd-firstboot --hostname aerocore-os --timezone UTC
 dnf clean all

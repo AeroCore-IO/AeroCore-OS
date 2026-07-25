@@ -9,7 +9,7 @@ image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
 iso="${project_root}/output/aerocore-os-${image_tag}-amd64.iso"
 
 if [[ ! -f "${iso}" ]]; then
-  just build-live-installer
+  just build-installer-iso
 fi
 
 podman run --rm --cap-add NET_ADMIN \

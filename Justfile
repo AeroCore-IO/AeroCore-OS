@@ -25,20 +25,25 @@ export INSTRUMENTS_RELEASE_API_BASE := env_var_or_default("INSTRUMENTS_RELEASE_A
 alias build-vm := build-qcow2
 alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
-alias build-live-iso := build-live-installer
-alias run-live-iso := run-live-installer
+alias build-installer := build-installer-iso
+alias run-installer := run-installer-iso
+# Backward-compatible aliases; these refer to the installer ISO, not a Live OS.
+alias build-live-iso := build-installer-iso
+alias run-live-iso := run-installer-iso
+alias build-live-installer := build-installer-iso
+alias run-live-installer := run-installer-iso
 
 [private]
 default:
     @just --list
 
-# Build a Bazzite-style live installer ISO
-build-live-installer $target_image=("localhost/" + image_name) $tag=default_tag:
-    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-live-installer.sh
+# Build a Bazzite-style installer ISO
+build-installer-iso $target_image=("localhost/" + image_name) $tag=default_tag:
+    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-installer-iso.sh
 
-# Boot the live installer ISO with QEMU
-run-live-installer:
-    @./just_scripts/run-live-installer.sh
+# Boot the installer ISO with QEMU
+run-installer-iso:
+    @./just_scripts/run-installer-iso.sh
 
 # Check Just Syntax
 [group('Just')]

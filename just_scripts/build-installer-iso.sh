@@ -10,7 +10,7 @@ image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
 live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:43}"
 installer_builder_image="${INSTALLER_BUILDER_IMAGE:-ghcr.io/jasonn3/build-container-installer:v1.5.0}"
 source_image="${image_name}:${image_tag}"
-payload="localhost/aerocore-live-payload:latest"
+payload="localhost/aerocore-os-installer:latest"
 output_dir="${project_root}/output"
 payload_archive="${output_dir}/install-payload.oci"
 iso="${output_dir}/aerocore-os-${image_tag}-amd64.iso"
@@ -102,7 +102,7 @@ fi
   ENABLE_CACHE_DNF="false" \
   ENABLE_CACHE_SKOPEO="false" \
   ENABLE_FLATPAK_DEPENDENCIES="false" \
-  IMAGE_NAME="aerocore-live-payload" \
+  IMAGE_NAME="aerocore-os-installer" \
   IMAGE_REPO="localhost" \
   IMAGE_SRC="containers-storage:${payload}" \
   IMAGE_TAG="latest" \
