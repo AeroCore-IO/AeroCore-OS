@@ -88,11 +88,13 @@ jobs:
           VERSION_BASE="${FEDORA_VERSION}.$(date -u +%Y%m%d)"
 
           if [[ "${GITHUB_REF_NAME}" == "testing" ]]; then
+            DEFAULT_TAG="testing"
             VERSION_TAG="testing-${VERSION_BASE}"
             VERSION_PRETTY="Testing (F${VERSION_BASE})"
             IMAGE_BRANCH="testing"
             ALIAS_TAGS="${VERSION_TAG} testing testing-${FEDORA_VERSION}"
           else
+            DEFAULT_TAG="stable"
             VERSION_TAG="${VERSION_BASE}"
             VERSION_PRETTY="Stable (F${VERSION_BASE})"
             IMAGE_BRANCH="stable"
@@ -100,7 +102,7 @@ jobs:
           fi
 
           {
-            echo "DEFAULT_TAG=${VERSION_TAG}"
+            echo "DEFAULT_TAG=${DEFAULT_TAG}"
             echo "IMAGE_BRANCH=${IMAGE_BRANCH}"
             echo "VERSION_TAG=${VERSION_TAG}"
             echo "VERSION_PRETTY=${VERSION_PRETTY}"
