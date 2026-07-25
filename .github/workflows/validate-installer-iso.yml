@@ -1,20 +1,17 @@
-name: Validate installer ISO
+name: Validate pull request
 
 on:
   pull_request:
-    paths:
-      - "Justfile"
-      - "installer/**"
-      - "just_scripts/build-installer-iso.sh"
-      - ".github/workflows/build-installer-iso.yml"
-      - ".github/workflows/validate-installer-iso.yml"
+    branches:
+      - main
+      - testing
 
 permissions:
   contents: read
 
 jobs:
-  validate-installer-iso:
-    name: Validate installer ISO inputs
+  validate:
+    name: Run lightweight checks
     runs-on: ubuntu-24.04
 
     steps:
@@ -27,6 +24,9 @@ jobs:
       - name: Validate workflow YAML
         run: |
           ruby -e 'require "yaml"; Dir[".github/workflows/*.yml"].each { |file| YAML.load_file(file) }'
+
+      - name: Validate Just syntax
+        run: just check
 
       - name: Validate Justfile formatting
         run: |
