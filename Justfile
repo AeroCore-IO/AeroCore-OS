@@ -8,6 +8,9 @@ export image_keywords := env_var("IMAGE_KEYWORDS")
 export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
+export IMAGE_BRANCH := env_var_or_default("IMAGE_BRANCH", "stable")
+export VERSION_TAG := env_var_or_default("VERSION_TAG", default_tag)
+export VERSION_PRETTY := env_var_or_default("VERSION_PRETTY", VERSION_TAG)
 export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
 export OSTREE_IMAGE_REF := env_var_or_default("OSTREE_IMAGE_REF", "ostree-image-signed:docker://ghcr.io/" + repo_organization + "/" + image_name)
 export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
@@ -126,7 +129,7 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
+    for arg in BASE_IMAGE IMAGE_BRANCH VERSION_TAG VERSION_PRETTY FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
@@ -138,7 +141,7 @@ build $target_image=image_name $tag=default_tag:
         LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
         LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ default_tag }}.$(date +%Y%m%d)-${GIT_SHA}")
+        LABELS+=("--label" "org.opencontainers.image.version={{ VERSION_TAG }}.$(date +%Y%m%d)-${GIT_SHA}")
     fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images

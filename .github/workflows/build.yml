@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
+      - testing
   #schedule:
   #  - cron: '05 10 * * *'  # 10:05am UTC everyday
   workflow_dispatch:
@@ -74,16 +72,38 @@ jobs:
 
           echo "IMAGE_NAME=${IMAGE_NAME}" >> "$GITHUB_ENV"
 
-      - name: Default Tag
-        id: gen-default-tag
+      - name: Generate Version and Tags
+        id: gen-version
+        env:
+          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable' }}
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF_NAME}" == "testing" ]]; then
-            DEFAULT_TAG="testing-$(date -u +%Y%m%d)"
+          set -euo pipefail
+
+          sudo podman pull "${BASE_IMAGE}"
+          FEDORA_VERSION=$(sudo podman run --rm --entrypoint /usr/bin/rpm "${BASE_IMAGE}" -E %fedora)
+          VERSION_BASE="${FEDORA_VERSION}.$(date -u +%Y%m%d)"
+
+          if [[ "${GITHUB_REF_NAME}" == "testing" ]]; then
+            DEFAULT_TAG="testing"
+            VERSION_TAG="testing-${VERSION_BASE}"
+            VERSION_PRETTY="Testing (F${VERSION_BASE})"
+            IMAGE_BRANCH="testing"
+            ALIAS_TAGS="${VERSION_TAG} testing testing-${FEDORA_VERSION}"
           else
-            DEFAULT_TAG=$(just generate-default-tag)
+            DEFAULT_TAG="stable"
+            VERSION_TAG="${VERSION_BASE}"
+            VERSION_PRETTY="Stable (F${VERSION_BASE})"
+            IMAGE_BRANCH="stable"
+            ALIAS_TAGS="${VERSION_TAG} stable-${VERSION_TAG} latest stable stable-${FEDORA_VERSION}"
           fi
 
-          echo "DEFAULT_TAG=${DEFAULT_TAG}" >> "$GITHUB_ENV"
+          {
+            echo "DEFAULT_TAG=${DEFAULT_TAG}"
+            echo "IMAGE_BRANCH=${IMAGE_BRANCH}"
+            echo "VERSION_TAG=${VERSION_TAG}"
+            echo "VERSION_PRETTY=${VERSION_PRETTY}"
+            echo "ALIAS_TAGS=${ALIAS_TAGS}"
+          } >> "$GITHUB_ENV"
 
       - name: Prepare environment
         run: |
@@ -130,17 +150,9 @@ jobs:
       - name: Generate Build Tags
         id: gen-build-tags
         run: |
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF_NAME}" == "testing" ]]; then
-            alias_tags="testing ${DEFAULT_TAG}"
-          else
-            alias_tags="$(just generate-build-tags \
-            "${IMAGE_NAME}" \
-            "${DEFAULT_TAG}")"
-          fi
-
           echo "Tags for this Action..."
-          echo "${alias_tags}"
-          echo "alias_tags=${alias_tags}" >> "$GITHUB_OUTPUT"
+          echo "${ALIAS_TAGS}"
+          echo "alias_tags=${ALIAS_TAGS}" >> "$GITHUB_OUTPUT"
 
       - name: Tag Image
         id: tag-images
@@ -156,14 +168,14 @@ jobs:
       # They publish default-branch builds and manual testing branch builds.
       - name: Login to GitHub Container Registry
         uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
-        if: github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/testing'))
+        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'testing')
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push To GHCR
-        if: github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/testing'))
+        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'testing')
         id: push-image
         env:
           ALIAS_TAGS: ${{ steps.gen-build-tags.outputs.alias_tags }}
@@ -184,14 +196,14 @@ jobs:
       # to consume. For more details, review the image signing section of the README.
       - name: Install Cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-        if: github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/testing'))
+        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'testing')
         # https://github.com/containers/container-libs/issues/388
         with:
           cosign-release: 'v2.6.3'
 
       - name: Sign container image
         id: sign-image
-        if: github.event_name != 'pull_request' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/testing'))
+        if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'testing')
         env:
           COSIGN_EXPERIMENTAL: false
           COSIGN_PRIVATE_KEY: ${{ secrets.SIGNING_SECRET }}
