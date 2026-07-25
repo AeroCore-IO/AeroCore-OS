@@ -55,15 +55,15 @@ BASE_IMAGE=ghcr.io/ublue-os/bazzite-deck:testing just build
 
 ```
 
-To build the Bazzite-style live installer locally, first build the AeroCore
+To build the Bazzite-style installer ISO locally, first build the AeroCore
 image and then run:
 
 ```bash
 sudo just build
-just build-live-installer
-just run-live-installer
+just build-installer-iso
+just run-installer-iso
 ```
 
 This requires privileged Podman, a rootful Podman API socket, and roughly
-70 GiB of free space. The live installer workflow consumes the published
+70 GiB of free space. The installer ISO workflow consumes the published
 `latest` AeroCore image and uploads the ISO as a GitHub Actions artifact.
