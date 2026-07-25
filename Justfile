@@ -8,6 +8,9 @@ export image_keywords := env_var("IMAGE_KEYWORDS")
 export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
+export IMAGE_BRANCH := env_var_or_default("IMAGE_BRANCH", "stable")
+export VERSION_TAG := env_var_or_default("VERSION_TAG", default_tag)
+export VERSION_PRETTY := env_var_or_default("VERSION_PRETTY", VERSION_TAG)
 export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
 export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
 export INSTALLER_BUILDER_IMAGE := env_var_or_default("INSTALLER_BUILDER_IMAGE", "ghcr.io/jasonn3/build-container-installer:v1.5.0")
@@ -120,7 +123,7 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
+    for arg in BASE_IMAGE IMAGE_BRANCH VERSION_TAG VERSION_PRETTY FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
