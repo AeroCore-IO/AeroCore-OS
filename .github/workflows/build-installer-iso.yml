@@ -31,6 +31,7 @@ jobs:
       # Keep these aligned with the Fedora major used by the target bazzite-deck base image.
       LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:43
       FEDORA_VERSION: "43"
+      OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
 
     steps:
       - name: Maximize build space
@@ -72,19 +73,23 @@ jobs:
       - name: Build installer ISO payload
         run: |
           mkdir -p output
+          ostree_image_ref="${OSTREE_IMAGE_REF:-ostree-image-signed:docker://${IMAGE_REGISTRY}/${IMAGE_NAME}}"
+          install_image_ref="${ostree_image_ref#ostree-image-signed:docker://}"
+          install_image_ref="${install_image_ref#ostree-unverified-registry:docker://}"
+          install_image_ref="${install_image_ref#docker://}"
           sudo podman tag \
             "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" \
-            localhost/aerocore-os-installer:latest
+            "${install_image_ref}:${IMAGE_TAG}"
           sudo podman save \
             --format oci-archive \
             --output output/install-payload.oci \
-            localhost/aerocore-os-installer:latest
+            "${install_image_ref}:${IMAGE_TAG}"
 
           sudo podman build \
             --cap-add sys_admin \
             --security-opt label=disable \
             --build-arg "BASE_IMAGE=${LIVE_BASE_IMAGE}" \
-            --build-arg "INSTALL_IMAGE_PAYLOAD=localhost/aerocore-os-installer:latest" \
+            --build-arg "INSTALL_IMAGE_PAYLOAD=${install_image_ref}:${IMAGE_TAG}" \
             --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
             --tag localhost/aerocore-os-installer:latest \
             --file installer/Containerfile \

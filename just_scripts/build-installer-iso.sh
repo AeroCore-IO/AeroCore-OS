@@ -10,7 +10,16 @@ image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
 live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:43}"
 installer_builder_image="${INSTALLER_BUILDER_IMAGE:-ghcr.io/jasonn3/build-container-installer:v1.5.0}"
 source_image="${image_name}:${image_tag}"
-payload="localhost/aerocore-os-installer:latest"
+# Keep the payload in local container storage, but use the public update
+# reference as its local tag so Anaconda writes that reference as the boot
+# origin instead of persisting the temporary localhost name. OSTREE_IMAGE_REF
+# is intentionally tagless, matching the image-info contract.
+image_basename="${image_name##*/}"
+ostree_image_ref="${OSTREE_IMAGE_REF:-ostree-image-signed:docker://ghcr.io/${REPO_ORGANIZATION:-AeroCore-IO}/${image_basename}}"
+install_image_ref="${ostree_image_ref#ostree-image-signed:docker://}"
+install_image_ref="${install_image_ref#ostree-unverified-registry:docker://}"
+install_image_ref="${install_image_ref#docker://}"
+payload="${install_image_ref}:${image_tag}"
 output_dir="${project_root}/output"
 payload_archive="${output_dir}/install-payload.oci"
 iso="${output_dir}/aerocore-os-${image_tag}-amd64.iso"
