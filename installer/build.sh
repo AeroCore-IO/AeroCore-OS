@@ -44,6 +44,13 @@ if [[ -d "${SCRIPT_DIR}/system_files/overrides" ]]; then
   cp -a "${SCRIPT_DIR}/system_files/overrides/." /
 fi
 
+# The target system is an upstream-built bootc image. Keep this installer-only
+# helper out of the installed image and invoke it after Anaconda mounts the
+# target rootfs.
+install -Dm0755 \
+  "${SCRIPT_DIR}/configure-target-grub.sh" \
+  /usr/libexec/aerocore-configure-target-grub
+
 # Plasma's live-session launcher defaults to start-here, and Fedora keeps
 # LOGO=fedora-logo-icon in the base live environment.
 for size in 16x16 22x22 24x24 32x32 36x36 48x48 64x64 96x96 128x128 256x256; do
@@ -126,6 +133,22 @@ if [ x\${target_root} = x ]; then
     exit 1
 fi
 systemd-firstboot --root=\${target_root} --hostname=aerocore-os
+%end
+
+%post --nochroot --log=/tmp/aerocore-grub.log
+set -eux
+target_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_root=\${root}
+        break
+    fi
+done
+if [ x\${target_root} = x ]; then
+    echo No mounted target system found for GRUB configuration >&2
+    exit 1
+fi
+/usr/libexec/aerocore-configure-target-grub \${target_root}
 %end
 EOF
 
