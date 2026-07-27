@@ -9,15 +9,6 @@ if [[ ! -d "${target_root}/etc" || ! -d "${target_root}/usr" ]]; then
   exit 1
 fi
 
-grub_defaults="${target_root}/etc/default/grub"
-mkdir -p "$(dirname "${grub_defaults}")"
-
-if [[ -f "${grub_defaults}" ]] && grep -q '^GRUB_TIMEOUT=' "${grub_defaults}"; then
-  sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' "${grub_defaults}"
-else
-  printf 'GRUB_TIMEOUT=0\n' >> "${grub_defaults}"
-fi
-
 grub_editenv=""
 for candidate in \
   "${target_root}/usr/bin/grub2-editenv" \
@@ -86,4 +77,6 @@ fi
 
 chroot "${target_root}" "${grub_mkconfig}" -o "${grub_config}"
 
-echo "Configured target GRUB: GRUB_TIMEOUT=0, menu_auto_hide=1, ${grub_config}"
+# Preserve the target image's GRUB timeout so users have time to choose an
+# entry after explicitly showing the otherwise hidden menu.
+echo "Configured target GRUB: menu_auto_hide=1, ${grub_config}"
