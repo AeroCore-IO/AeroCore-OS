@@ -70,7 +70,12 @@ if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
     /usr/share/icons/hicolor/scalable/places/start-here.svg
 fi
 
-sed -i 's/^LOGO=.*/LOGO=distributor-logo/' /usr/lib/os-release
+live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
+live_product_name="AeroCore OS"
+sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
+sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"${live_product_name} ${live_version_id} (Kinoite)\"/" /usr/lib/os-release
+sed -i "s/^LOGO=.*/LOGO=distributor-logo/" /usr/lib/os-release
+printf '%s release %s (Kinoite)\n' "${live_product_name}" "${live_version_id}" > /etc/system-release
 
 for desktop_file in \
   /usr/share/applications/liveinst.desktop \
