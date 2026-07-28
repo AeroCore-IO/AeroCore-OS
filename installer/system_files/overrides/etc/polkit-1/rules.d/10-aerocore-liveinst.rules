@@ -1,0 +1,10 @@
+// The installer action is privileged by design. Allow only the local,
+// active Live ISO session to launch it without a transient password prompt.
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.fedoraproject.pkexec.liveinst" &&
+        subject.user === "liveuser" &&
+        subject.local === true &&
+        subject.active === true) {
+        return polkit.Result.YES;
+    }
+});
