@@ -38,3 +38,9 @@ jobs:
             bash -n "$script"
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
+
+      - name: Validate installer polkit rules
+        run: |
+          for rule in installer/system_files/overrides/etc/polkit-1/rules.d/*.rules; do
+            node --check < "$rule"
+          done
