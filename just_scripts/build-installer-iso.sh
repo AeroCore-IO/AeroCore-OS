@@ -90,6 +90,8 @@ ensure_rootful_image
   --build-arg "BASE_IMAGE=${live_base_image}" \
   --build-arg "INSTALL_IMAGE_PAYLOAD=${payload}" \
   --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
+  --build-arg "INSTALL_IMAGE_TAG=${image_tag}" \
+  --build-arg "OSTREE_IMAGE_REF=${ostree_image_ref}" \
   --tag "${payload}" \
   --file installer/Containerfile \
   .

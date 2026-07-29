@@ -6,6 +6,8 @@ ARG IMAGE_VENDOR=AeroCore-IO
 ARG IMAGE_NAME=aerocore-os
 ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}:stable
 ARG INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci
+ARG INSTALL_IMAGE_TAG=latest
+ARG OSTREE_IMAGE_REF=ostree-image-signed:docker://ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}
 
 FROM ${BASE_IMAGE}
 
@@ -14,10 +16,14 @@ ARG IMAGE_VENDOR
 ARG IMAGE_NAME
 ARG INSTALL_IMAGE_PAYLOAD
 ARG INSTALL_IMAGE_PAYLOAD_ARCHIVE
+ARG INSTALL_IMAGE_TAG
+ARG OSTREE_IMAGE_REF
 
 RUN --mount=type=bind,source=.,target=/src \
     --mount=type=bind,source=output/install-payload.oci,target=/install-payload.oci,ro \
     env BASE_IMAGE="${BASE_IMAGE}" \
         INSTALL_IMAGE_PAYLOAD="${INSTALL_IMAGE_PAYLOAD}" \
         INSTALL_IMAGE_PAYLOAD_ARCHIVE="${INSTALL_IMAGE_PAYLOAD_ARCHIVE}" \
+        INSTALL_IMAGE_TAG="${INSTALL_IMAGE_TAG}" \
+        OSTREE_IMAGE_REF="${OSTREE_IMAGE_REF}" \
         /src/installer/build.sh

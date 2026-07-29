@@ -6,6 +6,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BASE_IMAGE=${BASE_IMAGE:?}
 INSTALL_IMAGE_PAYLOAD=${INSTALL_IMAGE_PAYLOAD:?}
 INSTALL_IMAGE_PAYLOAD_ARCHIVE=${INSTALL_IMAGE_PAYLOAD_ARCHIVE:-}
+INSTALL_IMAGE_TAG=${INSTALL_IMAGE_TAG:?}
+OSTREE_IMAGE_REF=${OSTREE_IMAGE_REF:?}
+ostree_origin_ref="${OSTREE_IMAGE_REF}:${INSTALL_IMAGE_TAG}"
 
 # The installer is a live KDE environment.  Keep the installed system payload
 # separate: it is the AeroCore image, while BASE_IMAGE provides the live UI.
@@ -123,6 +126,14 @@ df -h /var/tmp \${target_tmp}
 %end
 
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
+
+# The local containers-storage deployment is intentionally unverified because
+# the payload is loaded from an OCI archive. Point future bootc updates at the
+# signed registry reference configured for the image instead.
+%post --erroronfail --log=/tmp/aerocore-origin.log
+set -eux
+sed -i 's|container-image-reference=.*|container-image-reference=${ostree_origin_ref}|' /ostree/deploy/default/deploy/*.origin
+%end
 
 %post --nochroot --log=/tmp/aerocore-hostname.log
 set -eux
