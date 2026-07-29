@@ -115,8 +115,13 @@ git -C "${tmp_titanoboa}" checkout --quiet "${titanoboa_revision}"
 # `just build IMAGE 1 0 none squashfs "" 1`.
 (
   cd "${tmp_titanoboa}"
-  CI=1 TITANOBOA_WORKDIR="${tmp_titanoboa}/work" \
-    sudo PATH="${PATH}" just build "${payload}" 1 0 none squashfs "" 1
+  sudo env \
+    CI=1 \
+    TITANOBOA_WORKDIR="${tmp_titanoboa}/work" \
+    just \
+    --justfile "${tmp_titanoboa}/Justfile" \
+    --working-directory "${tmp_titanoboa}" \
+    build "${payload}" 1 0 none squashfs "" 1
 )
 
 titanoboa_iso="${tmp_titanoboa}/output.iso"
