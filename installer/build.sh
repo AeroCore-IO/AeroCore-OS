@@ -31,6 +31,11 @@ dnf --setopt=excludepkgs= reinstall -y \
   grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
+# Fedora 43's anaconda-webui bundle embeds a Cockpit password helper from
+# before cockpit-project/cockpit@900c13f. Restore that upstream fix so a weak
+# pwscore result is returned as score 0 instead of rejecting the WebUI promise.
+"${SCRIPT_DIR}/patch-anaconda-webui.sh"
+
 # Apply the same AeroCore overlay to the live session where possible.
 if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
