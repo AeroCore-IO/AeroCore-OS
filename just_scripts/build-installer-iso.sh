@@ -111,22 +111,20 @@ git clone --quiet --filter=blob:none --no-checkout \
 git -C "${tmp_titanoboa}" fetch --quiet origin "${titanoboa_revision}"
 git -C "${tmp_titanoboa}" checkout --quiet "${titanoboa_revision}"
 
-# Keep this invocation aligned with Zeglius/titanoboa's GitHub Action:
-# `just build IMAGE 1 0 none squashfs "" 1`.
+# Keep this invocation aligned with the pinned revision's GitHub Action.
+# This revision exposes main.sh rather than a Justfile.
 (
   cd "${tmp_titanoboa}"
-  sudo env \
+  env \
     CI=1 \
-    TITANOBOA_WORKDIR="${tmp_titanoboa}/work" \
-    just \
-    --justfile "${tmp_titanoboa}/Justfile" \
-    --working-directory "${tmp_titanoboa}" \
-    build "${payload}" 1 0 none squashfs "" 1
+    TITANOBOA_CTR_IMAGE="${payload}" \
+    TITANOBOA_OUTPUT_DIR="${tmp_titanoboa}/output" \
+    "${tmp_titanoboa}/main.sh"
 )
 
-titanoboa_iso="${tmp_titanoboa}/output.iso"
+titanoboa_iso="$(find "${tmp_titanoboa}/output" -maxdepth 1 -type f -name '*.iso' -print -quit)"
 if [[ ! -f "${titanoboa_iso}" ]]; then
-  echo "Titanoboa did not produce ${titanoboa_iso}" >&2
+  echo "Titanoboa did not produce an ISO in ${tmp_titanoboa}/output" >&2
   exit 1
 fi
 if [[ "${EUID}" -eq 0 ]]; then
