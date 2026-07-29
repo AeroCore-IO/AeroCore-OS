@@ -8,7 +8,8 @@ cd "${project_root}"
 image_name="${IMAGE_NAME:-localhost/$(just image_name)}"
 image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
 live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:43}"
-installer_builder_image="${INSTALLER_BUILDER_IMAGE:-ghcr.io/jasonn3/build-container-installer:v1.5.0}"
+titanoboa_repository="${TITANOBOA_REPOSITORY:-https://github.com/Zeglius/titanoboa.git}"
+titanoboa_revision="${TITANOBOA_REVISION:-7737f4748458252ac827dca14b3d6dd09298472a}"
 source_image="${image_name}:${image_tag}"
 # Keep the payload in local container storage, but use the public update
 # reference as its local tag so Anaconda writes that reference as the boot
@@ -90,6 +91,8 @@ ensure_rootful_image
   --build-arg "BASE_IMAGE=${live_base_image}" \
   --build-arg "INSTALL_IMAGE_PAYLOAD=${payload}" \
   --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
+  --build-arg "INSTALL_IMAGE_TAG=${image_tag}" \
+  --build-arg "OSTREE_IMAGE_REF=${ostree_image_ref}" \
   --tag "${payload}" \
   --file installer/Containerfile \
   .
@@ -100,24 +103,37 @@ else
   sudo rm -f "${iso}" "${checksum}"
 fi
 
-"${podman_cmd[@]}" run --rm --privileged \
-  --volume "${api_socket}:/var/run/docker.sock" \
-  --volume /var/lib/containers/storage:/var/lib/containers/storage \
-  --volume "${project_root}/output:/build-container-installer/build" \
-  --volume "${project_root}/installer/lorax_templates:/additional_lorax_templates:ro" \
-  "${installer_builder_image}" \
-  ADDITIONAL_TEMPLATES="/additional_lorax_templates/remove_root_password_prompt.tmpl /additional_lorax_templates/set_default_user.tmpl" \
-  ARCH="x86_64" \
-  ENABLE_CACHE_DNF="false" \
-  ENABLE_CACHE_SKOPEO="false" \
-  ENABLE_FLATPAK_DEPENDENCIES="false" \
-  IMAGE_NAME="aerocore-os-installer" \
-  IMAGE_REPO="localhost" \
-  IMAGE_SRC="containers-storage:${payload}" \
-  IMAGE_TAG="latest" \
-  ISO_NAME="build/aerocore-os-${image_tag}-amd64.iso" \
-  VARIANT="Kinoite" \
-  VERSION="${FEDORA_VERSION:-44}"
+tmp_titanoboa="$(mktemp -d -t aerocore-titanoboa.XXXXXXXXXX)"
+trap 'rm -rf "${tmp_titanoboa}"' EXIT
+
+git clone --quiet --filter=blob:none --no-checkout \
+  "${titanoboa_repository}" "${tmp_titanoboa}"
+git -C "${tmp_titanoboa}" fetch --quiet origin "${titanoboa_revision}"
+git -C "${tmp_titanoboa}" checkout --quiet "${titanoboa_revision}"
+
+# Keep this invocation aligned with the pinned revision's GitHub Action.
+# This revision exposes main.sh rather than a Justfile.
+(
+  cd "${tmp_titanoboa}"
+  env \
+    CI=1 \
+    TITANOBOA_CTR_IMAGE="${payload}" \
+    TITANOBOA_OUTPUT_DIR="${tmp_titanoboa}/output" \
+    "${tmp_titanoboa}/main.sh"
+)
+
+titanoboa_iso="$(find "${tmp_titanoboa}/output" -maxdepth 1 -type f -name '*.iso' -print -quit)"
+if [[ ! -f "${titanoboa_iso}" ]]; then
+  echo "Titanoboa did not produce an ISO in ${tmp_titanoboa}/output" >&2
+  exit 1
+fi
+if [[ "${EUID}" -eq 0 ]]; then
+  rm -f "${iso}" "${checksum}"
+  mv "${titanoboa_iso}" "${iso}"
+else
+  sudo rm -f "${iso}" "${checksum}"
+  sudo mv "${titanoboa_iso}" "${iso}"
+fi
 
 if [[ -f "${iso}" ]]; then
   if [[ "${EUID}" -ne 0 ]]; then

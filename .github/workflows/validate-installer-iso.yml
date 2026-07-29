@@ -39,6 +39,17 @@ jobs:
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
 
+      - name: Validate Anaconda WebUI patch
+        run: |
+          fixture="$(mktemp)"
+          trap 'rm -f "${fixture}"' EXIT
+          printf '%s' 'n===0?r(new Error(X2("Password is too weak"))):o(' |
+            gzip -n > "${fixture}"
+          installer/patch-anaconda-webui.sh "${fixture}"
+          gzip -dc "${fixture}" |
+            grep -Fq 'n===0&&!e?r(new Error(X2("Password is too weak"))):o('
+          installer/patch-anaconda-webui.sh "${fixture}"
+
       - name: Validate installer polkit rules
         run: |
           for rule in installer/system_files/overrides/etc/polkit-1/rules.d/*.rules; do
