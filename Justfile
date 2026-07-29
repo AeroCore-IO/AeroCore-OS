@@ -14,7 +14,8 @@ export VERSION_PRETTY := env_var_or_default("VERSION_PRETTY", VERSION_TAG)
 export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
 export OSTREE_IMAGE_REF := env_var_or_default("OSTREE_IMAGE_REF", "ostree-image-signed:docker://ghcr.io/" + repo_organization + "/" + image_name)
 export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
-export INSTALLER_BUILDER_IMAGE := env_var_or_default("INSTALLER_BUILDER_IMAGE", "ghcr.io/jasonn3/build-container-installer:v1.5.0")
+export TITANOBOA_REPOSITORY := env_var_or_default("TITANOBOA_REPOSITORY", "https://github.com/Zeglius/titanoboa.git")
+export TITANOBOA_REVISION := env_var_or_default("TITANOBOA_REVISION", "7737f4748458252ac827dca14b3d6dd09298472a")
 export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
 export HOMEBREW_BOTTLE_DOMAIN := env_var_or_default("HOMEBREW_BOTTLE_DOMAIN", "")
 export HOMEBREW_API_DOMAIN := env_var_or_default("HOMEBREW_API_DOMAIN", "")
@@ -38,7 +39,7 @@ alias run-live-installer := run-installer-iso
 default:
     @just --list
 
-# Build a Bazzite-style installer ISO
+# Build the same Titanoboa-based installer ISO as CI
 build-installer-iso $target_image=("localhost/" + image_name) $tag=default_tag:
     @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-installer-iso.sh
 
