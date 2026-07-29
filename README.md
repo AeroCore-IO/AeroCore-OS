@@ -64,6 +64,7 @@ just build-installer-iso
 just run-installer-iso
 ```
 
-This requires privileged Podman, a rootful Podman API socket, and roughly
-70 GiB of free space. The installer ISO workflow consumes the published
-`latest` AeroCore image and uploads the ISO as a GitHub Actions artifact.
+This requires privileged Podman, a rootful Podman API socket, `git`, and
+roughly 70 GiB of free space. Local ISO generation uses the same pinned
+Titanoboa builder as the installer workflow, and writes the ISO plus its
+SHA-256 checksum under `output/`.
