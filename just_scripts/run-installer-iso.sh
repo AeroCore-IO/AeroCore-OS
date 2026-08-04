@@ -6,7 +6,7 @@ project_root="$(git rev-parse --show-toplevel)"
 cd "${project_root}"
 
 image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
-iso="${project_root}/output/aerocore-os-${image_tag}-amd64.iso"
+iso="${project_root}/output/aerocore-os-${image_tag}-live-amd64.iso"
 
 if [[ ! -f "${iso}" ]]; then
   just build-installer-iso
