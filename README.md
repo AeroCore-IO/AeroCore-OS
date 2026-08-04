@@ -55,7 +55,7 @@ BASE_IMAGE=ghcr.io/ublue-os/bazzite-deck:testing just build
 
 ```
 
-To build the Bazzite-style installer ISO locally, first build the AeroCore
+To build the Bazzite-style live ISO locally, first build the AeroCore
 image and then run:
 
 ```bash
@@ -66,5 +66,5 @@ just run-installer-iso
 
 This requires privileged Podman, a rootful Podman API socket, `git`, and
 roughly 70 GiB of free space. Local ISO generation uses the same pinned
-Titanoboa builder as the installer workflow, and writes the ISO plus its
+Titanoboa builder as the live ISO workflow, and writes the ISO plus its
 SHA-256 checksum under `output/`.

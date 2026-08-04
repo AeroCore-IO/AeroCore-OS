@@ -1,4 +1,4 @@
-name: Build installer ISO
+name: Build Live ISOs
 
 on:
   workflow_dispatch:
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build-installer-iso:
-    name: Build KDE installer ISO
+    name: Build KDE live ISO
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -102,13 +102,13 @@ jobs:
         uses: Zeglius/titanoboa@7737f4748458252ac827dca14b3d6dd09298472a # revamp-pr
         with:
           image-ref: localhost/aerocore-os-installer:latest
-          iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
+          iso-dest: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-live-amd64.iso
 
       - name: Normalize ISO output path
         shell: bash
         env:
           GENERATED_ISO: ${{ steps.build.outputs.iso-dest }}
-          EXPECTED_ISO: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-amd64.iso
+          EXPECTED_ISO: ${{ github.workspace }}/output/aerocore-os-${{ env.ISO_FILE_TAG }}-live-amd64.iso
         run: |
           if [[ ! -f "${GENERATED_ISO}" ]]; then
             echo "::error::Generated ISO does not exist at ${GENERATED_ISO}"
@@ -123,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          iso_path="output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
+          iso_path="output/aerocore-os-${ISO_FILE_TAG}-live-amd64.iso"
           checksum_path="${iso_path}-CHECKSUM"
           sha256sum "${iso_path}" | tee "${checksum_path}"
           {
@@ -141,7 +141,7 @@ jobs:
         shell: bash
         run: |
           iso_upload_dir="${{ github.workspace }}/output/upload"
-          iso_path="${{ github.workspace }}/output/aerocore-os-${ISO_FILE_TAG}-amd64.iso"
+          iso_path="${{ github.workspace }}/output/aerocore-os-${ISO_FILE_TAG}-live-amd64.iso"
           iso_name="$(basename "${iso_path}")"
 
           mkdir -p "${iso_upload_dir}"
