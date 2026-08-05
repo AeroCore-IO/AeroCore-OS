@@ -23,7 +23,7 @@ install_image_ref="${install_image_ref#docker://}"
 payload="${install_image_ref}:${image_tag}"
 output_dir="${project_root}/output"
 payload_archive="${output_dir}/install-payload.oci"
-iso="${output_dir}/aerocore-os-${image_tag}-amd64.iso"
+iso="${output_dir}/aerocore-os-${image_tag}-live-amd64.iso"
 checksum="${iso}-CHECKSUM"
 api_socket="${PODMAN_SOCKET:-/run/podman/podman.sock}"
 if [[ "${EUID}" -eq 0 ]]; then
