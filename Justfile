@@ -29,7 +29,7 @@ alias rebuild-vm := rebuild-qcow2
 alias run-vm := run-vm-qcow2
 alias build-installer := build-installer-iso
 alias run-installer := run-installer-iso
-# Backward-compatible aliases; these refer to the installer ISO, not a Live OS.
+# Backward-compatible aliases for the Titanoboa live ISO build.
 alias build-live-iso := build-installer-iso
 alias run-live-iso := run-installer-iso
 alias build-live-installer := build-installer-iso
@@ -39,11 +39,11 @@ alias run-live-installer := run-installer-iso
 default:
     @just --list
 
-# Build the same Titanoboa-based installer ISO as CI
+# Build the same Titanoboa-based live ISO as CI
 build-installer-iso $target_image=("localhost/" + image_name) $tag=default_tag:
     @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-installer-iso.sh
 
-# Boot the installer ISO with QEMU
+# Boot the live ISO with QEMU
 run-installer-iso:
     @./just_scripts/run-installer-iso.sh
 
