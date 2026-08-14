@@ -14,6 +14,20 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# Default HDMI-CEC to putting the TV into standby when the system sleeps.
+# `ujust toggle-cec-sleep enable` changes this same setting at runtime.  Keep
+# the default in the base image's config so users do not need to run the
+# command manually after a fresh install; the runtime command can still
+# change it later.
+CEC_CONFIG=/etc/default/cec-control
+if [[ -f "${CEC_CONFIG}" ]]; then
+  if grep -q '^CEC_ONSLEEP_STANDBY=' "${CEC_CONFIG}"; then
+    sed -i 's/^CEC_ONSLEEP_STANDBY=.*/CEC_ONSLEEP_STANDBY=true/' "${CEC_CONFIG}"
+  else
+    printf '%s\n' 'CEC_ONSLEEP_STANDBY=true' >> "${CEC_CONFIG}"
+  fi
+fi
+
 mkdir -p /etc/environment.d
 
 if [[ -n "${FLATPAK_REMOTE_URL:-}" || -n "${HOMEBREW_BOTTLE_DOMAIN:-}" || -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
