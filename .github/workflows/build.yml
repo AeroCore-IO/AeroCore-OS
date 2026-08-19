@@ -224,7 +224,9 @@ jobs:
   generate_release:
     name: Generate Release
     needs: [build_push]
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' &&
+        (github.ref_name == github.event.repository.default_branch ||
+         github.ref_name == 'testing')
     permissions:
       contents: write
     secrets: inherit
