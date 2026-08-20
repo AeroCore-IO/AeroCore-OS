@@ -44,7 +44,7 @@ jobs:
         uses: softprops/action-gh-release@v3.0.2
         with:
           tag_name: "${{ inputs.release_tag }}"
-          name: "AeroCore OS ${{ inputs.release_tag }}"
+          name: "${{ inputs.release_tag }}"
           body: |
             ${{ inputs.handwritten }}
           prerelease: ${{ steps.target.outputs.target != 'stable' }}
