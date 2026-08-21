@@ -1,0 +1,14 @@
+#!/usr/bin/bash
+
+# Minimal structural fixture from Bazzite 44.20260820.
+if [[ $IMAGE_NAME =~ "deck" ]]; then
+  touch "$HOME/Desktop/Return.desktop"
+fi
+
+if [[ $IMAGE_NAME =~ "deck" ]]; then
+  touch "$HOME/.config/bazzite/desktop-configured"
+fi
+
+if [[ $IMAGE_NAME =~ "deck" ]]; then
+  systemctl --user enable --now sdgyrodsu.service
+fi

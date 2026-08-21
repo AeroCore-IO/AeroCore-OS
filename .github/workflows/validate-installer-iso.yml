@@ -34,10 +34,13 @@ jobs:
 
       - name: Validate build scripts
         run: |
-          for script in build_files/*.sh installer/*.sh just_scripts/*.sh; do
+          for script in build_files/*.sh installer/*.sh just_scripts/*.sh tests/*.sh; do
             bash -n "$script"
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
+
+      - name: Test Bazzite Deck identity patch
+        run: tests/test-patch-bazzite-deck-identity.sh
 
       - name: Validate Anaconda WebUI patch
         run: |

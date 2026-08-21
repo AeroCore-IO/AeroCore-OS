@@ -9,6 +9,7 @@ INSTALL_IMAGE_PAYLOAD_ARCHIVE=${INSTALL_IMAGE_PAYLOAD_ARCHIVE:-}
 INSTALL_IMAGE_TAG=${INSTALL_IMAGE_TAG:?}
 OSTREE_IMAGE_REF=${OSTREE_IMAGE_REF:?}
 ostree_origin_ref="${OSTREE_IMAGE_REF}:${INSTALL_IMAGE_TAG}"
+live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
 
 # The installer is a live KDE environment.  Keep the installed system payload
 # separate: it is the AeroCore image, while BASE_IMAGE provides the live UI.
@@ -32,9 +33,11 @@ dnf --setopt=excludepkgs= reinstall -y \
   grub2-efi-x64-cdboot
 
 # Fedora 43's anaconda-webui bundle embeds a Cockpit password helper from
-# before cockpit-project/cockpit@900c13f. Restore that upstream fix so a weak
-# pwscore result is returned as score 0 instead of rejecting the WebUI promise.
-"${SCRIPT_DIR}/patch-anaconda-webui.sh"
+# before cockpit-project/cockpit@900c13f. Fedora 44 already carries the fix;
+# retain the workaround only for explicitly requested Fedora 43 live images.
+if [[ "${live_version_id}" == "43" ]]; then
+  "${SCRIPT_DIR}/patch-anaconda-webui.sh"
+fi
 
 # Apply the same AeroCore overlay to the live session where possible.
 if [[ -d /src/system_files ]]; then
@@ -78,7 +81,6 @@ if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
     /usr/share/icons/hicolor/scalable/places/start-here.svg
 fi
 
-live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
 live_product_name="AeroCore OS"
 sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"${live_product_name} ${live_version_id} (Kinoite)\"/" /usr/lib/os-release

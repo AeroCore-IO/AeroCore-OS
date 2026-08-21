@@ -7,7 +7,7 @@ cd "${project_root}"
 
 image_name="${IMAGE_NAME:-localhost/$(just image_name)}"
 image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
-live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:43}"
+live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:44}"
 titanoboa_repository="${TITANOBOA_REPOSITORY:-https://github.com/Zeglius/titanoboa.git}"
 titanoboa_revision="${TITANOBOA_REVISION:-7737f4748458252ac827dca14b3d6dd09298472a}"
 source_image="${image_name}:${image_tag}"

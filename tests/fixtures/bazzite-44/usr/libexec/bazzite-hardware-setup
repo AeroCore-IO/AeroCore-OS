@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+# Minimal structural fixture from Bazzite 44.20260820.
+if [[ "$IMAGE_NAME" != *deck* && "$IMAGE_NAME" != *dx* ]]; then
+  rm -f /etc/sddm.conf.d/steamos.conf
+fi
+
+if [[ $IMAGE_NAME =~ "deck" ]]; then
+  systemctl mask tuned.service
+fi
