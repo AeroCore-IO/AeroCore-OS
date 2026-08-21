@@ -125,8 +125,8 @@ patch_condition \
 # shellcheck disable=SC2016
 patch_condition \
   "${1:-$(target_path /usr/libexec/bazzite-hardware-setup)}" \
-  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME =~ "ally" ]]; then' \
-  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME =~ "ally" || $IMAGE_NAME == aerocore-os ]]; then' \
+  'if [[ $IMAGE_NAME =~ "deck" ]]; then' \
+  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME == aerocore-os ]]; then' \
   1
 
 # bazzite-steam gates the Steam bootstrap archive and -steamdeck flag on the
@@ -144,6 +144,6 @@ patch_steam_state_migration "$(target_path /usr/bin/bazzite-steam)"
 # shellcheck disable=SC2016
 patch_condition \
   "$(target_path /usr/libexec/bazzite-user-setup)" \
-  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME =~ "ally" ]]; then' \
-  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME =~ "ally" || $IMAGE_NAME == aerocore-os ]]; then' \
+  'if [[ $IMAGE_NAME =~ "deck" ]]; then' \
+  'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME == aerocore-os ]]; then' \
   3

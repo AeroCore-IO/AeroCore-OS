@@ -16,7 +16,7 @@ ARG VERSION_PRETTY="latest"
 ARG OSTREE_IMAGE_REF=""
 ## Other possible base images include:
 # ghcr.io/ublue-os/bazzite-deck:testing
-# ghcr.io/ublue-os/bazzite-deck:stable-43.20260420
+# ghcr.io/ublue-os/bazzite-deck:stable-44.20260820
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
