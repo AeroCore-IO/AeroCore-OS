@@ -1,0 +1,51 @@
+name: Generate Release
+
+on:
+  workflow_call:
+    inputs:
+      handwritten:
+        required: false
+        type: string
+      release_tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      handwritten:
+        description: 'Small changelog about changes in this build'
+        required: false
+        type: string
+      release_tag:
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  generate-release:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 50
+
+      - name: Determine release channel
+        id: target
+        run: |
+          target="${GITHUB_REF_NAME}"
+          [[ "${target}" == "main" ]] && target="stable"
+          echo "target=${target}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release
+        uses: softprops/action-gh-release@v3.0.2
+        with:
+          tag_name: "${{ inputs.release_tag }}"
+          name: "${{ inputs.release_tag }}"
+          body: |
+            ${{ inputs.handwritten }}
+          prerelease: ${{ steps.target.outputs.target != 'stable' }}
+          make_latest: ${{ steps.target.outputs.target == 'stable' }}

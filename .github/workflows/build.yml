@@ -8,6 +8,11 @@ on:
   #schedule:
   #  - cron: '05 10 * * *'  # 10:05am UTC everyday
   workflow_dispatch:
+    inputs:
+      handwritten:
+        description: "Small changelog about changes in this build"
+        required: false
+        type: string
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
@@ -20,6 +25,8 @@ jobs:
   build_push:
     name: Build and push image
     runs-on: ubuntu-24.04
+    outputs:
+      release_tag: ${{ steps.gen-version.outputs.release_tag }}
 
     permissions:
       contents: read
@@ -105,6 +112,8 @@ jobs:
             echo "ALIAS_TAGS=${ALIAS_TAGS}"
           } >> "$GITHUB_ENV"
 
+          echo "release_tag=${VERSION_TAG}" >> "$GITHUB_OUTPUT"
+
       - name: Prepare environment
         run: |
           # Lowercase the image uri https://github.com/macbre/push-to-ghcr/issues/12
@@ -167,7 +176,7 @@ jobs:
       # These `if` statements keep pull requests from publishing packages.
       # They publish default-branch builds and manual testing branch builds.
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@371161bbe7024a29a25c5e19bfcbc0804fe9ad2c # v4.5.2
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: github.event_name != 'pull_request' && (github.ref_name == github.event.repository.default_branch || github.ref_name == 'testing')
         with:
           registry: ghcr.io
@@ -211,3 +220,17 @@ jobs:
           DIGEST: ${{ steps.push-image.outputs.digest }}
         run: |
           cosign sign -y --key env://COSIGN_PRIVATE_KEY "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}"
+
+  generate_release:
+    name: Generate Release
+    needs: [build_push]
+    if: github.event_name != 'pull_request' &&
+        (github.ref_name == github.event.repository.default_branch ||
+         github.ref_name == 'testing')
+    permissions:
+      contents: write
+    secrets: inherit
+    uses: ./.github/workflows/generate_release.yml
+    with:
+      release_tag: ${{ needs.build_push.outputs.release_tag }}
+      handwritten: ${{ inputs.handwritten }}
