@@ -115,33 +115,6 @@ else
   podman pull "${INSTALL_IMAGE_PAYLOAD}"
 fi
 
-# Refuse to build an ISO with a payload that still carries Bazzite release
-# bytes. bootupd derives its EFI label from system-release during installation;
-# a trailing NUL there makes efibootmgr fail before Anaconda can run %post.
-podman run --rm --entrypoint /usr/bin/bash "${INSTALL_IMAGE_PAYLOAD}" -ceu '
-  system_release=/etc/system-release
-  system_release_target=$(readlink -f "$system_release")
-
-  if od -An -v -tx1 "$system_release_target" | awk '\''{ for (i = 1; i <= NF; i++) if ($i == "00") found = 1 } END { exit(found ? 0 : 1) }'\''; then
-    echo "Install payload has a NUL byte in ${system_release_target}" >&2
-    od -An -v -tx1 "$system_release_target" >&2
-    exit 1
-  fi
-
-  expected_prefix="AeroCore OS release $(rpm -E %fedora) ("
-  system_release_value=$(<"$system_release_target")
-  case "$system_release_value" in
-    "$expected_prefix"*) ;;
-    *)
-      echo "Install payload has an unexpected system-release: ${system_release_value@Q}" >&2
-      exit 1
-      ;;
-  esac
-
-  jq -e '\''.["image-name"] == "aerocore-os" and .["image-vendor"] == "aerocore-io"'\'' \
-    /usr/share/ublue-os/image-info.json >/dev/null
-'
-
 # Tell Anaconda to install the bootc container that was loaded above.
 mkdir -p /var/lib/rpm-state
 cat >> /usr/share/anaconda/interactive-defaults.ks <<EOF

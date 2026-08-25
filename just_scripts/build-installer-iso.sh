@@ -16,7 +16,10 @@ source_image="${image_name}:${image_tag}"
 # origin instead of persisting the temporary localhost name. OSTREE_IMAGE_REF
 # is intentionally tagless, matching the image-info contract.
 image_basename="${image_name##*/}"
-ostree_image_ref="${OSTREE_IMAGE_REF:-ostree-image-signed:docker://ghcr.io/${REPO_ORGANIZATION:-AeroCore-IO}/${image_basename}}"
+registry_organization="${REPO_ORGANIZATION:-aerocore-io}"
+registry_organization="${registry_organization,,}"
+ostree_image_ref="${OSTREE_IMAGE_REF:-ostree-image-signed:docker://ghcr.io/${registry_organization}/${image_basename}}"
+ostree_image_ref="${ostree_image_ref,,}"
 install_image_ref="${ostree_image_ref#ostree-image-signed:docker://}"
 install_image_ref="${install_image_ref#ostree-unverified-registry:docker://}"
 install_image_ref="${install_image_ref#docker://}"
@@ -79,8 +82,32 @@ ensure_rootful_image() {
   rm -rf "${copy_tmp}"
 }
 
+validate_install_payload() {
+  # Run on the build host rather than from installer/Containerfile. Nested
+  # Podman has no /dev/fuse in the build sandbox, while this check needs to
+  # mount the payload rootfs to inspect the bootupd label source.
+  "${podman_cmd[@]}" run --rm --network none --entrypoint /usr/bin/bash \
+    "${source_image}" -ceu '
+      system_release_target=$(readlink -f /etc/system-release)
+      if od -An -v -tx1 "$system_release_target" | awk '\''{ for (i = 1; i <= NF; i++) if ($i == "00") found = 1 } END { exit(found ? 0 : 1) }'\''; then
+        echo "Install payload has a NUL byte in ${system_release_target}" >&2
+        exit 1
+      fi
+      case "$(<"$system_release_target")" in
+        "AeroCore OS release $(rpm -E %fedora) ("*) ;;
+        *)
+          echo "Unexpected system-release: $(<"$system_release_target")" >&2
+          exit 1
+          ;;
+      esac
+      jq -e '\''.["image-name"] == "aerocore-os" and .["image-vendor"] == "aerocore-io"'\'' \
+        /usr/share/ublue-os/image-info.json >/dev/null
+    '
+}
+
 mkdir -p "${output_dir}"
 ensure_rootful_image
+validate_install_payload
 
 "${podman_cmd[@]}" tag "${source_image}" "${payload}"
 "${podman_cmd[@]}" save --format oci-archive --output "${payload_archive}" "${payload}"
