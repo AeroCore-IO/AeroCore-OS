@@ -33,12 +33,13 @@ done
 # The Plasma launcher resolves the standard start-here name from both scalable
 # and per-size places directories.  Populate every existing Bazzite icon size
 # in the installed payload, not only in the live installer image.
-for icon_dir in /usr/share/icons/hicolor/*/places; do
+for icon_dir in /usr/share/icons/hicolor/*; do
   [[ -d "${icon_dir}" ]] || continue
   source_icon="${icon_dir}/bazzite-logo-icon.png"
   if [[ -f "${source_icon}" ]]; then
-    cp -f "${source_icon}" "${icon_dir}/start-here.png"
-    cp -f "${source_icon}" "${icon_dir}/fedora-logo-icon.png"
+    mkdir -p "${icon_dir}/apps" "${icon_dir}/places"
+    cp -f "${source_icon}" "${icon_dir}/places/start-here.png"
+    cp -f "${source_icon}" "${icon_dir}/apps/fedora-logo-icon.png"
   fi
 done
 
