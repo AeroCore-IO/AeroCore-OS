@@ -32,6 +32,9 @@ jobs:
         run: |
           just --unstable --fmt --check -f Justfile
 
+      - name: Test dotenv precedence
+        run: tests/test-dotenv-precedence.sh
+
       - name: Validate build scripts
         run: |
           for script in build_files/*.sh installer/*.sh just_scripts/*.sh tests/*.sh; do

@@ -16,6 +16,18 @@ on:
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"  # do not edit
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.event.repository.name }}
+  REPO_ORGANIZATION: ${{ vars.REPO_ORGANIZATION || github.repository_owner }}
+  IMAGE_DESC: ${{ vars.IMAGE_DESC || 'AeroCore customized Bazzite Deck image' }}
+  IMAGE_KEYWORDS: ${{ vars.IMAGE_KEYWORDS || 'bootc,oci,linux,bazzite,steam-deck,aerocore' }}
+  IMAGE_LOGO_URL: ${{ vars.IMAGE_LOGO_URL || 'https://avatars.githubusercontent.com/u/120078124?s=200&v=4' }}
+  DEFAULT_TAG: ${{ vars.DEFAULT_TAG || 'stable' }}
+  BIB_IMAGE: ${{ vars.BIB_IMAGE || 'quay.io/centos-bootc/bootc-image-builder:latest' }}
+  BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable' }}
+  FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
+  HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
+  HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
+  OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
