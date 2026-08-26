@@ -130,7 +130,17 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE IMAGE_BRANCH VERSION_TAG VERSION_PRETTY FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
+    # The recipe tag is the channel selected by commands such as
+    # `just build localhost/aerocore-os testing`. Keep the image's internal
+    # channel/version metadata aligned with that tag instead of allowing a
+    # stale dotenv value (for example, `stable`) to leak into the image.
+    BUILD_CHANNEL_ARGS=(
+        "--build-arg" "IMAGE_BRANCH={{ tag }}"
+        "--build-arg" "VERSION_TAG={{ tag }}"
+        "--build-arg" "VERSION_PRETTY={{ tag }}"
+    )
+
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
@@ -142,7 +152,7 @@ build $target_image=image_name $tag=default_tag:
         LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
         LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ VERSION_TAG }}-${GIT_SHA}")
+        LABELS+=("--label" "org.opencontainers.image.version={{ tag }}-${GIT_SHA}")
     fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
@@ -158,7 +168,7 @@ build $target_image=image_name $tag=default_tag:
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
 
     # This actually builds the image!
-    PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    PODMAN_BUILD_ARGS=("${BUILD_CHANNEL_ARGS[@]}" "${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 
