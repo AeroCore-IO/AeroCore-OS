@@ -89,6 +89,7 @@ fi
 live_product_name="AeroCore OS"
 sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"${live_product_name} ${live_version_id} (Kinoite)\"/" /usr/lib/os-release
+sed -i 's/^ID=.*/ID=aerocore/' /usr/lib/os-release
 sed -i "s/^LOGO=.*/LOGO=distributor-logo/" /usr/lib/os-release
 printf '%s release %s (Kinoite)\n' "${live_product_name}" "${live_version_id}" > /etc/system-release
 
