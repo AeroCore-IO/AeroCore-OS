@@ -13,6 +13,18 @@ jobs:
   validate:
     name: Run lightweight checks
     runs-on: ubuntu-24.04
+    # `just check` parses the whole Justfile, so provide the non-secret
+    # variables required by its top-level metadata declarations. This job
+    # does not build or publish an image; production builds use repository
+    # runtime variables in their respective workflows.
+    env:
+      IMAGE_NAME: aerocore-os
+      REPO_ORGANIZATION: aerocore-io
+      IMAGE_DESC: AeroCore customized Bazzite Deck image
+      IMAGE_KEYWORDS: bootc,oci,linux,bazzite,steam-deck,aerocore
+      IMAGE_LOGO_URL: https://avatars.githubusercontent.com/u/120078124?s=200&v=4
+      DEFAULT_TAG: testing
+      BIB_IMAGE: quay.io/centos-bootc/bootc-image-builder:latest
 
     steps:
       - name: Checkout
