@@ -151,7 +151,7 @@ jobs:
           umask 077
           printf '%s' "${GITHUB_TOKEN}" > "${GITHUB_TOKEN_FILE}"
           trap 'rm -f "${GITHUB_TOKEN_FILE}"' EXIT
-          sudo GITHUB_TOKEN_FILE="${GITHUB_TOKEN_FILE}" "$(command -v just)" build \
+          sudo -E GITHUB_TOKEN_FILE="${GITHUB_TOKEN_FILE}" "$(command -v just)" build \
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}"
 
