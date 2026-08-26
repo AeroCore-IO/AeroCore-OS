@@ -13,12 +13,13 @@ on:
         required: false
         type: string
       image_name:
-        description: "Image name override; defaults to IMAGE_NAME var, then image-template.env"
+        description: "Image name override; defaults to the runtime IMAGE_NAME variable"
         required: false
         type: string
 
 env:
   IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || github.event.repository.name }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.image_name || 'default' }}-${{ inputs.source_tag }}
@@ -37,9 +38,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
-      - name: Install just
-        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 #v4.0.0
-
       - name: Install skopeo
         run: |
           sudo apt-get update
@@ -54,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          image_name="${IMAGE_NAME_INPUT:-${IMAGE_NAME_VAR:-$(just image_name)}}"
+          image_name="${IMAGE_NAME_INPUT:-${IMAGE_NAME_VAR:-${IMAGE_NAME}}}"
           target_tags="${TARGET_TAGS_INPUT:-$SOURCE_TAG}"
 
           {
