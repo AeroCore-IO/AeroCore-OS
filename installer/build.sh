@@ -158,6 +158,24 @@ fi
 /usr/libexec/aerocore-configure-target-gpt-root \${target_root}
 %end
 
+# Do not let stale Fedora boot files from an earlier installation collide with
+# the bootc payload being installed. This matches the upstream Bazzite
+# installer behavior; other vendor EFI directories are left untouched.
+%pre-install --erroronfail --log=/tmp/aerocore-efi-cleanup.log
+set -eux
+efi_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}/boot/efi; then
+        efi_root=\${root}/boot/efi
+        break
+    fi
+done
+if [ x\${efi_root} = x ]; then
+    echo No mounted EFI system partition found for cleanup >&2
+    exit 1
+fi
+rm -rf \${efi_root}/EFI/fedora
+%end
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
 
 # The local containers-storage deployment is intentionally unverified because

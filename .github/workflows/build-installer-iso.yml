@@ -68,6 +68,26 @@ jobs:
         run: |
           sudo podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
+      - name: Verify AeroCore install image identity
+        run: |
+          sudo podman run --rm --entrypoint /usr/bin/bash \
+            "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" -ceu '
+              system_release_target=$(readlink -f /etc/system-release)
+              if od -An -v -tx1 "$system_release_target" | awk '\''{ for (i = 1; i <= NF; i++) if ($i == "00") found = 1 } END { exit(found ? 0 : 1) }'\''; then
+                echo "NUL byte in ${system_release_target}" >&2
+                exit 1
+              fi
+              case "$(<"$system_release_target")" in
+                "AeroCore OS release $(rpm -E %fedora) ("*) ;;
+                *)
+                  echo "Unexpected system-release: $(<"$system_release_target")" >&2
+                  exit 1
+                  ;;
+              esac
+              jq -e '\''.["image-name"] == "aerocore-os" and .["image-vendor"] == "aerocore-io"'\'' \
+                /usr/share/ublue-os/image-info.json >/dev/null
+            '
+
       - name: Build installer ISO payload
         run: |
           mkdir -p output

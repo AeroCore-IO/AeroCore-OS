@@ -17,7 +17,6 @@ if [[ ! "${source_device}" =~ ^/dev/ ]]; then
   source_maj_min="$(findmnt -no MAJ:MIN --target "${target_root}")"
   source_device="$(lsblk -nrpo NAME,MAJ:MIN | awk -v wanted="${source_maj_min}" '$2 == wanted { print $1; exit }')"
 fi
-
 case "${source_device}" in
   /dev/*[0-9]) ;;
   *)

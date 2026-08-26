@@ -9,7 +9,7 @@ COPY system_files /system_files
 FROM ${BASE_IMAGE}
 ARG BASE_IMAGE
 ARG IMAGE_NAME="aerocore-os"
-ARG IMAGE_VENDOR="AeroCore-IO"
+ARG IMAGE_VENDOR="aerocore-io"
 ARG IMAGE_BRANCH="stable"
 ARG VERSION_TAG="latest"
 ARG VERSION_PRETTY="latest"
