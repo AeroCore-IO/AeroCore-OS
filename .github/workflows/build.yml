@@ -136,6 +136,7 @@ jobs:
       - name: Build Image
         id: build-image
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable' }}
           FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
           HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
@@ -146,7 +147,11 @@ jobs:
           INSTRUMENTS_VERSION: ${{ vars.INSTRUMENTS_VERSION || 'latest' }}
           INSTRUMENTS_RELEASE_API_BASE: ${{ vars.INSTRUMENTS_RELEASE_API_BASE || 'https://api.github.com' }}
         run: |
-          sudo -E "$(command -v just)" build \
+          GITHUB_TOKEN_FILE="${RUNNER_TEMP}/aerocore-build-github-token"
+          umask 077
+          printf '%s' "${GITHUB_TOKEN}" > "${GITHUB_TOKEN_FILE}"
+          trap 'rm -f "${GITHUB_TOKEN_FILE}"' EXIT
+          sudo GITHUB_TOKEN_FILE="${GITHUB_TOKEN_FILE}" "$(command -v just)" build \
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}"
 

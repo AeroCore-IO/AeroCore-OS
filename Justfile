@@ -168,7 +168,9 @@ build $target_image=image_name $tag=default_tag:
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
 
     # This actually builds the image!
-    PODMAN_BUILD_ARGS=("${BUILD_CHANNEL_ARGS[@]}" "${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    # The build always exposes a secret mount.  Local builds use /dev/null;
+    # CI supplies a short-lived GitHub token file for private release assets.
+    PODMAN_BUILD_ARGS=("${BUILD_CHANNEL_ARGS[@]}" "${BUILD_ARGS[@]}" "${LABELS[@]}" --secret "id=GITHUB_TOKEN,src=${GITHUB_TOKEN_FILE:-/dev/null}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 

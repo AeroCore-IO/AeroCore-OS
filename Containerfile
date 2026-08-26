@@ -44,6 +44,7 @@ ARG INSTRUMENTS_RELEASE_API_BASE="https://api.github.com"
 RUN --mount=type=bind,from=ctx,source=/,target=/ctx \
     --mount=type=cache,dst=/var/cache \
     --mount=type=cache,dst=/var/log \
+    --mount=type=secret,id=GITHUB_TOKEN \
     --mount=type=tmpfs,dst=/tmp \
     /ctx/build.sh && \
     /ctx/image-info && \
