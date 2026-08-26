@@ -60,6 +60,9 @@ jobs:
       - name: Test GPT root configuration
         run: tests/test-configure-target-gpt-root.sh
 
+      - name: Validate AeroCore Anaconda profile
+        run: tests/test-aerocore-anaconda-profile.sh
+
       - name: Validate Anaconda WebUI patch
         run: |
           fixture="$(mktemp)"
