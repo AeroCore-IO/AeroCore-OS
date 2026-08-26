@@ -42,6 +42,9 @@ jobs:
       - name: Test Bazzite Deck identity patch
         run: tests/test-patch-bazzite-deck-identity.sh
 
+      - name: Test GPT root configuration
+        run: tests/test-configure-target-gpt-root.sh
+
       - name: Validate Anaconda WebUI patch
         run: |
           fixture="$(mktemp)"

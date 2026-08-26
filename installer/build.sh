@@ -23,6 +23,7 @@ dnf --setopt=excludepkgs= install -y \
   libblockdev-lvm \
   dracut-live \
   livesys-scripts \
+  gdisk \
   grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
@@ -61,6 +62,10 @@ fi
 install -Dm0755 \
   "${SCRIPT_DIR}/configure-target-grub.sh" \
   /usr/libexec/aerocore-configure-target-grub
+
+install -Dm0755 \
+  "${SCRIPT_DIR}/configure-target-gpt-root.sh" \
+  /usr/libexec/aerocore-configure-target-gpt-root
 
 # Plasma's live-session launcher defaults to start-here, and Fedora keeps
 # LOGO=fedora-logo-icon in the base live environment.
@@ -130,6 +135,26 @@ mkdir -p \${target_tmp}
 chmod 1777 \${target_tmp}
 mount --bind \${target_tmp} /var/tmp
 df -h /var/tmp \${target_tmp}
+%end
+
+# bootc relies on systemd's GPT auto-root discovery on the first boot. Anaconda
+# can leave the installed root partition with the generic Linux filesystem
+# type, which makes /dev/gpt-auto-root unavailable even though the filesystem
+# itself is healthy. Normalize the type before ostreecontainer deployment.
+%pre-install --erroronfail --log=/tmp/aerocore-gpt-root.log
+set -eux
+target_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_root=\${root}
+        break
+    fi
+done
+if [ x\${target_root} = x ]; then
+    echo No mounted target system found for GPT root configuration >&2
+    exit 1
+fi
+/usr/libexec/aerocore-configure-target-gpt-root \${target_root}
 %end
 
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
