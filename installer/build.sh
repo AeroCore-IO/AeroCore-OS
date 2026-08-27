@@ -45,6 +45,15 @@ if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
 fi
 
+# The live base can already contain this About System asset as a symlink.
+# Replace the link itself so the installer UI also renders AeroCore branding.
+if [[ -f /src/system_files/usr/share/pixmaps/system-logo-white.png ]]; then
+  rm -f /usr/share/pixmaps/system-logo-white.png
+  install -Dm0644 \
+    /src/system_files/usr/share/pixmaps/system-logo-white.png \
+    /usr/share/pixmaps/system-logo-white.png
+fi
+
 BRANDING_DIR="${SCRIPT_DIR}/branding"
 if [[ -d "${BRANDING_DIR}" ]]; then
   mkdir -p /usr/share/anaconda/pixmaps

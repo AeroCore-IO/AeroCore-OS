@@ -46,6 +46,13 @@ install_regular_file \
   "/ctx/system_files/usr/share/pixmaps/bazzite-logo-le.svg" \
   "/usr/share/icons/hicolor/scalable/apps/aerocore-logo.svg"
 
+# KDE's About System KCM loads this path from kcm-about-distrorc.  The base
+# image may provide it as a symlink, so replace the directory entry itself or
+# the KCM can continue rendering the upstream Bazzite logo.
+install_regular_file \
+  "/ctx/system_files/usr/share/pixmaps/system-logo-white.png" \
+  "/usr/share/pixmaps/system-logo-white.png"
+
 # Game Mode's Vapor splash asset is an upstream symlink on current Bazzite
 # images, while VGUI is a regular file.  Replace both exact paths explicitly.
 for look_and_feel in com.valve.vapor.desktop com.valve.vgui.desktop; do

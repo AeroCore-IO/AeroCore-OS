@@ -48,4 +48,11 @@ for path in \
   grep -Fq "${path}" "${repo_root}/build_files/build.sh"
 done
 
+# The About System logo may be a symlink in the Bazzite base image. Both image
+# build paths must explicitly replace that directory entry with AeroCore's PNG.
+grep -Fq '"/usr/share/pixmaps/system-logo-white.png"' \
+  "${repo_root}/build_files/build.sh"
+grep -Fq 'rm -f /usr/share/pixmaps/system-logo-white.png' \
+  "${repo_root}/installer/build.sh"
+
 echo "Desktop branding migration fixture passed"
