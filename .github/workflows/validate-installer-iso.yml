@@ -53,9 +53,13 @@ jobs:
             bash -n "$script"
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
+          bash -n system_files/usr/libexec/aerocore-desktop-branding
 
       - name: Test Bazzite Deck identity patch
         run: tests/test-patch-bazzite-deck-identity.sh
+
+      - name: Test desktop branding migration
+        run: tests/test-desktop-branding-migration.sh
 
       - name: Test GPT root configuration
         run: tests/test-configure-target-gpt-root.sh

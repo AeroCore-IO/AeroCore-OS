@@ -14,6 +14,17 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+install_regular_file() {
+  local source_file="$1"
+  local destination_file="$2"
+
+  # Several Bazzite branding paths are symlinks.  cp follows an existing
+  # destination symlink, which leaves the name Plasma resolves untouched.
+  # Replace the link itself so the final immutable image owns this exact path.
+  rm -f -- "${destination_file}"
+  install -Dm0644 -- "${source_file}" "${destination_file}"
+}
+
 # KDE's Deck presets use distributor-logo-steamdeck.svg for the Kickoff
 # launcher.  In the Bazzite base image that name (and the related aliases)
 # may already exist as links to the upstream distributor-logo.svg.  Install
@@ -27,8 +38,36 @@ for icon_name in \
   distributor-logo-steamdeck.svg \
   bazzite-logo.svg \
   start-here.svg; do
-  cp -f "${AEROCORE_DISTRIBUTOR_LOGO}" "${AEROCORE_ICON_DIR}/${icon_name}"
+  install_regular_file "${AEROCORE_DISTRIBUTOR_LOGO}" "${AEROCORE_ICON_DIR}/${icon_name}"
 done
+
+# Use a downstream-specific, non-upstream icon name for Plasma's launcher.
+install_regular_file \
+  "/ctx/system_files/usr/share/pixmaps/bazzite-logo-le.svg" \
+  "/usr/share/icons/hicolor/scalable/apps/aerocore-logo.svg"
+
+# Game Mode's Vapor splash asset is an upstream symlink on current Bazzite
+# images, while VGUI is a regular file.  Replace both exact paths explicitly.
+for look_and_feel in com.valve.vapor.desktop com.valve.vgui.desktop; do
+  install_regular_file \
+    "/ctx/system_files/usr/share/plasma/look-and-feel/${look_and_feel}/contents/splash/images/bazzite_logo.svgz" \
+    "/usr/share/plasma/look-and-feel/${look_and_feel}/contents/splash/images/bazzite_logo.svgz"
+done
+
+# Steam's Game Mode transitions load these four assets directly.  They are
+# symlinks in some upstream layers, so replace their directory entries just
+# like the Plasma splash assets above.
+for animation in \
+  bazzite.webm \
+  bazzite-oled.webm \
+  bazzite-suspend.webm \
+  bazzite-suspend-oled.webm; do
+  install_regular_file \
+    "/ctx/system_files/usr/share/ublue-os/bazzite/${animation}" \
+    "/usr/share/ublue-os/bazzite/${animation}"
+done
+
+gtk-update-icon-cache -f /usr/share/icons/hicolor || true
 
 # The Plasma launcher resolves the standard start-here name from both scalable
 # and per-size places directories.  Populate every existing Bazzite icon size
@@ -89,6 +128,8 @@ if [[ -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
 fi
 
 find /etc/environment.d /etc/skel/.config/environment.d -name 99-aerocore-mirrors.conf -type f -exec chmod 0644 {} + 2>/dev/null || true
+
+systemctl enable aerocore-desktop-branding.service
 
 /ctx/install-instruments.sh
 /ctx/patch-bazzite-deck-identity.sh
