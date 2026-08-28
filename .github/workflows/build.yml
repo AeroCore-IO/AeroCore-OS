@@ -168,7 +168,8 @@ jobs:
           sudo podman run --rm --entrypoint /usr/bin/bash \
             "${IMAGE_NAME}:${DEFAULT_TAG}" -ceu '
               system_release=/etc/system-release
-              fedora_version=$(jq -er '."fedora-version" | strings' /usr/share/ublue-os/image-info.json)
+              fedora_version=$(jq -er '\''."fedora-version" | strings'\'' \
+                /usr/share/ublue-os/image-info.json)
               if od -An -v -tx1 "$system_release" | awk '\''{ for (i = 1; i <= NF; i++) if ($i == "00") found = 1 } END { exit(found ? 0 : 1) }'\''; then
                 echo "NUL byte in ${system_release}" >&2
                 exit 1
