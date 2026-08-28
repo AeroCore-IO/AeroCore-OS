@@ -54,6 +54,7 @@ jobs:
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
           bash -n system_files/usr/libexec/aerocore-desktop-branding
+          bash -n system_files/usr/libexec/aerocore-desktop-branding-privileged
 
       - name: Test Bazzite Deck identity patch
         run: tests/test-patch-bazzite-deck-identity.sh

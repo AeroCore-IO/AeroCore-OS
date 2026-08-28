@@ -1,5 +1,7 @@
 #!/usr/bin/bash
 
+pkexec /usr/libexec/bazzite-privileged-user-setup "$USER"
+
 # Minimal structural fixture from Bazzite 44.20260820.
 if [[ $IMAGE_NAME =~ "deck" ]]; then
   touch "$HOME/Desktop/Return.desktop"

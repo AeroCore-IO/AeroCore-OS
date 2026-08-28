@@ -2,27 +2,15 @@
 
 set -euo pipefail
 
-# The optional prefix makes the migration testable without touching the host.
-root_prefix="${AEROCORE_DESKTOP_BRANDING_ROOT:-}"
-about_source="${root_prefix}/usr/share/aerocore/desktop-branding/kcm-about-distrorc"
-about_target="${root_prefix}/etc/xdg/kcm-about-distrorc"
+# Called from Bazzite's user-level setup. The setup's version files provide
+# the once-per-image-version guard; this helper only touches the current user.
+plasma_config="${HOME}/.config/plasma-org.kde.plasma.desktop-appletsrc"
 
-# Existing installations can retain Bazzite's old /etc copy across deployment
-# updates. Only replace that known upstream default; administrator changes win.
-if [[ -f "${about_source}" ]] &&
-  { [[ ! -f "${about_target}" ]] || grep -Fxq 'Name=Bazzite' "${about_target}"; }; then
-  install -Dm0644 "${about_source}" "${about_target}"
+if [[ -f "${plasma_config}" ]] && grep -Fxq 'icon=distributor-logo-steamdeck' "${plasma_config}"; then
+  updated_config="$(mktemp "${plasma_config}.XXXXXX")"
+  trap 'rm -f -- "${updated_config}"' EXIT
+  sed 's/^icon=distributor-logo-steamdeck$/icon=aerocore-logo/' \
+    "${plasma_config}" > "${updated_config}"
+  mv -- "${updated_config}" "${plasma_config}"
+  trap - EXIT
 fi
-
-# Deck's stock look-and-feel stores this value in each user's Plasma config.
-# Migrate only the unmodified upstream value so users can still choose an icon.
-shopt -s nullglob
-for plasma_config in "${root_prefix}"/var/home/*/.config/plasma-org.kde.plasma.desktop-appletsrc \
-  "${root_prefix}"/home/*/.config/plasma-org.kde.plasma.desktop-appletsrc; do
-  if grep -Fxq 'icon=distributor-logo-steamdeck' "${plasma_config}"; then
-    updated_config="$(mktemp "${plasma_config}.XXXXXX")"
-    sed 's/^icon=distributor-logo-steamdeck$/icon=aerocore-logo/' "${plasma_config}" > "${updated_config}"
-    cat "${updated_config}" > "${plasma_config}"
-    rm -f "${updated_config}"
-  fi
-done

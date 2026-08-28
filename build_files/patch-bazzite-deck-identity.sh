@@ -110,6 +110,54 @@ patch_steam_state_migration() {
   fi
 }
 
+patch_desktop_branding_migration() {
+  local file="$1"
+  local marker='AeroCore desktop branding migration'
+  local condition='pkexec /usr/libexec/bazzite-privileged-user-setup "$USER"'
+  local patched_file
+
+  if [[ ! -f "$file" ]]; then
+    echo "Unable to locate expected Bazzite user setup file: $file" >&2
+    exit 1
+  fi
+
+  if grep -Fq "$marker" "$file"; then
+    return 0
+  fi
+
+  if [[ "$(grep -Foc "$condition" "$file" || true)" -ne 1 ]]; then
+    echo "Unable to locate the Bazzite privileged user setup call in $file" >&2
+    exit 1
+  fi
+
+  patched_file="$(mktemp)"
+  awk -v condition="$condition" '
+    !inserted && $0 == condition {
+      print
+      print ""
+      print "  # AeroCore desktop branding migration"
+      print "  # The image contains the correct defaults. This only repairs values"
+      print "  # persisted by an older Bazzite/AeroCore deployment."
+      print "  if [[ -f /etc/xdg/kcm-about-distrorc ]] && grep -Fxq \"Name=Bazzite\" /etc/xdg/kcm-about-distrorc; then"
+      print "    pkexec /usr/libexec/aerocore-desktop-branding-privileged"
+      print "  fi"
+      print "  /usr/libexec/aerocore-desktop-branding"
+      inserted=1
+      next
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$file" > "$patched_file"
+
+  cp "$patched_file" "$file"
+  rm -f "$patched_file"
+
+  if ! grep -Fq "$marker" "$file"; then
+    echo "Failed to add the AeroCore desktop branding migration to $file" >&2
+    exit 1
+  fi
+}
+
 # Keep AeroCore's public image-name, while restoring the Deck capability checks
 # used by Bazzite's runtime scripts. These are literal source lines; variable
 # expansion must happen later, when the scripts run on the installed system.
@@ -147,3 +195,5 @@ patch_condition \
   'if [[ $IMAGE_NAME =~ "deck" ]]; then' \
   'if [[ $IMAGE_NAME =~ "deck" || $IMAGE_NAME == aerocore-os ]]; then' \
   3
+
+patch_desktop_branding_migration "$(target_path /usr/libexec/bazzite-user-setup)"
