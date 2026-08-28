@@ -163,6 +163,26 @@ jobs:
             "${IMAGE_NAME}" \
             "${DEFAULT_TAG}"
 
+      - name: Verify image metadata before publishing
+        run: |
+          sudo podman run --rm --entrypoint /usr/bin/bash \
+            "${IMAGE_NAME}:${DEFAULT_TAG}" -ceu '
+              system_release=/etc/system-release
+              if od -An -v -tx1 "$system_release" | awk '\''{ for (i = 1; i <= NF; i++) if ($i == "00") found = 1 } END { exit(found ? 0 : 1) }'\''; then
+                echo "NUL byte in ${system_release}" >&2
+                exit 1
+              fi
+              case "$(<"$system_release")" in
+                "AeroCore OS release $(rpm -E %fedora) ("*) ;;
+                *)
+                  echo "Unexpected system-release: $(<"$system_release")" >&2
+                  exit 1
+                  ;;
+              esac
+              jq -e '\''.["image-name"] == "aerocore-os" and .["image-vendor"] == "aerocore-io"'\'' \
+                /usr/share/ublue-os/image-info.json >/dev/null
+            '
+
       # If you are feeling adventurous, use the new distro agnostic rechunker
       # https://github.com/coreos/chunkah
       # You can delete the Rechunk with rpm-ostree portion then if you use this
