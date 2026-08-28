@@ -71,15 +71,15 @@ sed -i "/^REDHAT_BUGZILLA_PRODUCT=/d; /^REDHAT_BUGZILLA_PRODUCT_VERSION=/d; /^RE
 sed -i "s|^VERSION_CODENAME=.*|VERSION_CODENAME=\"Deck\"|" /usr/lib/os-release
 
 # /etc/system-release is normally a symlink to the RPM-owned fedora-release.
-# Replace the directory entry instead of writing through that link.  In the
-# bootc/ostree build chain, an in-place write to the RPM-owned target can be
-# lost while the final image is assembled, leaving Anaconda to read the
-# upstream file (which may contain a trailing NUL).
+# Keep that relationship, but replace the target inode explicitly.  This
+# avoids relying on an in-place write through an RPM-owned symlink, which can
+# be lost while the bootc/ostree image is assembled, leaving Anaconda to read
+# the upstream file (which may contain a trailing NUL).
 SYSTEM_RELEASE="/etc/system-release"
+SYSTEM_RELEASE_TARGET="$(readlink -f "$SYSTEM_RELEASE")"
 EXPECTED_SYSTEM_RELEASE="$IMAGE_PRETTY_NAME release $FEDORA_VERSION (Deck)"
-rm -f -- "$SYSTEM_RELEASE"
-printf '%s\n' "$EXPECTED_SYSTEM_RELEASE" > "$SYSTEM_RELEASE"
-SYSTEM_RELEASE_TARGET="$SYSTEM_RELEASE"
+rm -f -- "$SYSTEM_RELEASE_TARGET"
+printf '%s\n' "$EXPECTED_SYSTEM_RELEASE" > "$SYSTEM_RELEASE_TARGET"
 
 if ! cmp -s <(printf '%s\n' "$EXPECTED_SYSTEM_RELEASE") "$SYSTEM_RELEASE_TARGET"; then
   echo "Failed to write a clean AeroCore system-release to ${SYSTEM_RELEASE_TARGET}" >&2
