@@ -24,7 +24,7 @@ env:
   IMAGE_LOGO_URL: ${{ vars.IMAGE_LOGO_URL || 'https://avatars.githubusercontent.com/u/120078124?s=200&v=4' }}
   DEFAULT_TAG: ${{ vars.DEFAULT_TAG || 'stable' }}
   BIB_IMAGE: ${{ vars.BIB_IMAGE || 'quay.io/centos-bootc/bootc-image-builder:latest' }}
-  BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:testing-44.20260908.3' }}
+  BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable-44.20260908' }}
   FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
   HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
   HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
@@ -95,7 +95,7 @@ jobs:
       - name: Generate Version and Tags
         id: gen-version
         env:
-          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:testing-44.20260908.3' }}
+          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable-44.20260908' }}
         run: |
           set -euo pipefail
 
@@ -162,7 +162,7 @@ jobs:
         id: build-image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:testing-44.20260908.3' }}
+          BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable-44.20260908' }}
           FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
           HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
           HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
