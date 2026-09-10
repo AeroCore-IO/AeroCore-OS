@@ -13,6 +13,18 @@ setup-decky-mirror ACTION="":
 
     source /usr/lib/ujust/ujust.sh
 
+    if [[ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]]; then
+      SUDO_PREFIX=(sudo -A)
+      HAS_GRAPHICAL_SESSION=1
+    else
+      SUDO_PREFIX=(sudo)
+      HAS_GRAPHICAL_SESSION=0
+    fi
+
+    run_as_root() {
+      "${SUDO_PREFIX[@]}" "$@"
+    }
+
     DECKY_MIRROR_HOST="${AEROCORE_DECKY_MIRROR_HOST:-decky.mirror.aerocore.com.cn}"
     DECKY_INSTALLER_BASE="https://${DECKY_MIRROR_HOST}/SteamDeckHomebrew/decky-installer/releases/latest/download"
 
@@ -47,28 +59,40 @@ setup-decky-mirror ACTION="":
       HOME="$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)"
       if [[ ! -L "/home/deck" && ! -e "/home/deck" && "$HOME" != "/home/deck" ]]; then
         echo "Making a /home/deck symlink to fix plugins that do not use environment variables."
-        sudo -A ln -sf "$HOME" /home/deck
+        run_as_root ln -sf "$HOME" /home/deck
       fi
     }
 
     install_release() {
       setup_home_deck_compat
-      curl -L "${DECKY_INSTALLER_BASE}/install_release.sh" |
-        sed 's|sudo|sudo -A |g' | sh
-      sudo -A chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
+      if [[ "$HAS_GRAPHICAL_SESSION" -eq 1 ]]; then
+        curl -L "${DECKY_INSTALLER_BASE}/install_release.sh" |
+          sed 's|sudo|sudo -A |g' | sh
+      else
+        curl -L "${DECKY_INSTALLER_BASE}/install_release.sh" | sh
+      fi
+      run_as_root chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
     }
 
     install_prerelease() {
       setup_home_deck_compat
-      curl -L "${DECKY_INSTALLER_BASE}/install_prerelease.sh" |
-        sed 's|sudo|sudo -A |g' | sh
-      sudo -A chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
+      if [[ "$HAS_GRAPHICAL_SESSION" -eq 1 ]]; then
+        curl -L "${DECKY_INSTALLER_BASE}/install_prerelease.sh" |
+          sed 's|sudo|sudo -A |g' | sh
+      else
+        curl -L "${DECKY_INSTALLER_BASE}/install_prerelease.sh" | sh
+      fi
+      run_as_root chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
     }
 
     uninstall() {
       echo "Uninstalling Decky Loader..."
-      curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" |
-        sed 's|sudo|sudo -A |g' | sh
+      if [[ "$HAS_GRAPHICAL_SESSION" -eq 1 ]]; then
+        curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" |
+          sed 's|sudo|sudo -A |g' | sh
+      else
+        curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" | sh
+      fi
       echo "Decky Loader has been uninstalled."
     }
 
@@ -85,6 +109,10 @@ setup-decky-mirror ACTION="":
       get_status_token
       exit $?
     elif [[ "$OPTION" == "" ]]; then
+      if [[ "$HAS_GRAPHICAL_SESSION" -eq 0 ]]; then
+        echo "No graphical session detected. Use 'ujust setup-decky-mirror install' from a TTY, or run this command in KDE/Steam Gaming Mode."
+        exit 2
+      fi
       echo "${bold}Decky Loader setup and configuration${normal}"
       echo "Decky is $DECKY_STATE"
       OPTION="$(ugum choose "Install Decky from AeroCore Mirror" "Install Decky Prerelease from AeroCore Mirror" "Uninstall Decky" "Exit")"
