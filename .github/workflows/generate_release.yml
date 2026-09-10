@@ -33,6 +33,16 @@ jobs:
         with:
           fetch-depth: 50
 
+      - name: Align release tag with build commit
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          git tag --force "${RELEASE_TAG}" "${GITHUB_SHA}"
+          git push --force origin "refs/tags/${RELEASE_TAG}"
+          echo "Release tag ${RELEASE_TAG} now points to ${GITHUB_SHA}."
+
       - name: Determine release channel
         id: target
         run: |
