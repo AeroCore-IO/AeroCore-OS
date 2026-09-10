@@ -101,25 +101,43 @@ jobs:
 
           sudo podman pull "${BASE_IMAGE}"
           FEDORA_VERSION=$(sudo podman run --rm --entrypoint /usr/bin/rpm "${BASE_IMAGE}" -E %fedora)
-          VERSION_BASE="${FEDORA_VERSION}.$(date -u +%Y%m%d)"
+          VERSION_BASE="${FEDORA_VERSION}.$(date +%Y%m%d)"
 
           if [[ "${GITHUB_REF_NAME}" == "testing-candidate" ]]; then
             DEFAULT_TAG="testing-candidate"
             VERSION_TAG="testing-candidate-${VERSION_BASE}"
-            VERSION_PRETTY="Testing candidate (F${VERSION_BASE})"
+            VERSION_PRETTY_PREFIX="Testing candidate"
             IMAGE_BRANCH="testing-candidate"
-            ALIAS_TAGS="${VERSION_TAG} testing-candidate testing-candidate-${FEDORA_VERSION}"
           elif [[ "${GITHUB_REF_NAME}" == "testing" ]]; then
             DEFAULT_TAG="testing"
             VERSION_TAG="testing-${VERSION_BASE}"
-            VERSION_PRETTY="Testing (F${VERSION_BASE})"
+            VERSION_PRETTY_PREFIX="Testing"
             IMAGE_BRANCH="testing"
-            ALIAS_TAGS="${VERSION_TAG} testing testing-${FEDORA_VERSION}"
           else
             DEFAULT_TAG="stable"
             VERSION_TAG="${VERSION_BASE}"
-            VERSION_PRETTY="Stable (F${VERSION_BASE})"
+            VERSION_PRETTY_PREFIX="Stable"
             IMAGE_BRANCH="stable"
+          fi
+
+          mapfile -t existing_tags < <(skopeo list-tags "docker://${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}" 2>/dev/null | jq -r '.Tags[]' || true)
+          if printf '%s\n' "${existing_tags[@]}" | grep -Fxq "${VERSION_TAG}"; then
+            build=1
+            while printf '%s\n' "${existing_tags[@]}" | grep -Fxq "${VERSION_TAG}.${build}"; do
+              ((build++))
+            done
+            VERSION_TAG="${VERSION_TAG}.${build}"
+          fi
+
+          VERSION_BASE_PRETTY="${VERSION_TAG#testing-candidate-}"
+          VERSION_BASE_PRETTY="${VERSION_BASE_PRETTY#testing-}"
+          VERSION_PRETTY="${VERSION_PRETTY_PREFIX} (F${VERSION_BASE_PRETTY})"
+
+          if [[ "${GITHUB_REF_NAME}" == "testing-candidate" ]]; then
+            ALIAS_TAGS="${VERSION_TAG} testing-candidate testing-candidate-${FEDORA_VERSION}"
+          elif [[ "${GITHUB_REF_NAME}" == "testing" ]]; then
+            ALIAS_TAGS="${VERSION_TAG} testing testing-${FEDORA_VERSION}"
+          else
             ALIAS_TAGS="${VERSION_TAG} stable-${VERSION_TAG} latest stable stable-${FEDORA_VERSION}"
           fi
 

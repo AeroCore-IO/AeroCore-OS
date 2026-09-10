@@ -111,8 +111,8 @@ sudoif command *args:
 #   $target_image - The tag you want to apply to the image (default: $image_name).
 #   $tag - The tag for the image (default: $default_tag).
 #
-# If the git working directory is clean, it appends the short SHA of the current HEAD
-# to the version tag supplied by the build environment.
+# If the git working directory is clean, it labels the image with the current HEAD
+# revision while keeping the image version on the build environment's VERSION_TAG.
 #
 # just build $target_image $tag
 #
@@ -131,13 +131,13 @@ build $target_image=image_name $tag=default_tag:
     BUILD_ARGS=()
     LABELS=()
     # The recipe tag is the channel selected by commands such as
-    # `just build localhost/aerocore-os testing`. Keep the image's internal
-    # channel/version metadata aligned with that tag instead of allowing a
-    # stale dotenv value (for example, `stable`) to leak into the image.
+    # `just build localhost/aerocore-os testing`. VERSION_TAG and
+    # VERSION_PRETTY may be supplied by CI and should remain the release
+    # version stamped inside the image.
     BUILD_CHANNEL_ARGS=(
         "--build-arg" "IMAGE_BRANCH={{ tag }}"
-        "--build-arg" "VERSION_TAG={{ tag }}"
-        "--build-arg" "VERSION_PRETTY={{ tag }}"
+        "--build-arg" "VERSION_TAG=${VERSION_TAG:-{{ tag }}}"
+        "--build-arg" "VERSION_PRETTY=${VERSION_PRETTY:-${VERSION_TAG:-{{ tag }}}}"
     )
 
     for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
@@ -150,9 +150,10 @@ build $target_image=image_name $tag=default_tag:
         GIT_SHA=$(git rev-parse --short HEAD)
         LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
+        LABELS+=("--label" "org.opencontainers.image.revision=${GIT_SHA}")
         LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
         LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ tag }}-${GIT_SHA}")
+        LABELS+=("--label" "org.opencontainers.image.version=${VERSION_TAG:-{{ tag }}}")
     fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
