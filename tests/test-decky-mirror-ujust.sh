@@ -24,6 +24,18 @@ if rg -q 'https://github\.com/SteamDeckHomebrew/decky-installer' "${recipe}"; th
   exit 1
 fi
 
+if ! rg -q 'configure_plugin_store\(\)' "${recipe}" || \
+   ! rg -q 'plugins\.decky\.mirror\.aerocore\.com\.cn' "${recipe}" || \
+   ! rg -q 'DECKY_PLUGIN_STORE_URL=.*\/plugins' "${recipe}"; then
+  echo "Decky mirror recipe must configure the AeroCore plugin store URL" >&2
+  exit 1
+fi
+
+if ! rg -q 'loader\.json' "${recipe}" || ! rg -q '\.store = 2' "${recipe}" || ! rg -q 'store-url' "${recipe}"; then
+  echo "Decky mirror recipe must persist the custom plugin store in loader.json" >&2
+  exit 1
+fi
+
 for script_name in install_release.sh install_prerelease.sh uninstall.sh; do
   if ! rg -q "\\$\\{DECKY_INSTALLER_BASE\\}/${script_name}" "${recipe}"; then
     echo "Decky mirror recipe does not route ${script_name} through the mirror base" >&2

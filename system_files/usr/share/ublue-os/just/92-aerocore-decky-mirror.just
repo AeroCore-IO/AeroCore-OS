@@ -27,6 +27,8 @@ setup-decky-mirror ACTION="":
 
     DECKY_MIRROR_HOST="${AEROCORE_DECKY_MIRROR_HOST:-decky.mirror.aerocore.com.cn}"
     DECKY_INSTALLER_BASE="https://${DECKY_MIRROR_HOST}/SteamDeckHomebrew/decky-installer/releases/latest/download"
+    DECKY_PLUGIN_MIRROR_HOST="${AEROCORE_DECKY_PLUGIN_MIRROR_HOST:-plugins.decky.mirror.aerocore.com.cn}"
+    DECKY_PLUGIN_STORE_URL="https://${DECKY_PLUGIN_MIRROR_HOST}/plugins"
 
     get_status_token() {
       local decky_service="/etc/systemd/system/plugin_loader.service"
@@ -63,6 +65,22 @@ setup-decky-mirror ACTION="":
       fi
     }
 
+    configure_plugin_store() {
+      echo "Configuring Decky plugin store: ${DECKY_PLUGIN_STORE_URL}"
+      local settings_file="$HOME/homebrew/settings/loader.json"
+      local settings_dir="$(dirname "$settings_file")"
+      local temporary_file
+      mkdir -p "$settings_dir"
+      temporary_file="$(mktemp "${settings_dir}/.loader.XXXXXX")"
+      if [[ -f "$settings_file" ]]; then
+        jq --arg store_url "$DECKY_PLUGIN_STORE_URL" '.store = 2 | ."store-url" = $store_url' "$settings_file" > "$temporary_file"
+      else
+        jq -n --arg store_url "$DECKY_PLUGIN_STORE_URL" '{store: 2, "store-url": $store_url}' > "$temporary_file"
+      fi
+      chmod --reference="$settings_file" "$temporary_file" 2>/dev/null || chmod 0644 "$temporary_file"
+      mv -f "$temporary_file" "$settings_file"
+    }
+
     install_release() {
       setup_home_deck_compat
       if [[ "$HAS_GRAPHICAL_SESSION" -eq 1 ]]; then
@@ -72,6 +90,9 @@ setup-decky-mirror ACTION="":
         curl -L "${DECKY_INSTALLER_BASE}/install_release.sh" | sh
       fi
       run_as_root chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
+      run_as_root systemctl stop plugin_loader.service 2>/dev/null || true
+      configure_plugin_store
+      run_as_root systemctl start plugin_loader.service 2>/dev/null || true
     }
 
     install_prerelease() {
@@ -83,6 +104,9 @@ setup-decky-mirror ACTION="":
         curl -L "${DECKY_INSTALLER_BASE}/install_prerelease.sh" | sh
       fi
       run_as_root chcon -R -t bin_t "$HOME/homebrew/services/PluginLoader"
+      run_as_root systemctl stop plugin_loader.service 2>/dev/null || true
+      configure_plugin_store
+      run_as_root systemctl start plugin_loader.service 2>/dev/null || true
     }
 
     uninstall() {
