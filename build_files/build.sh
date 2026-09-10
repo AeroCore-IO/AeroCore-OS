@@ -14,6 +14,15 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# ujust loads explicit imports, not every fragment in the just/ directory.
+# Preserve upstream recipes and register our overlay after copying its files.
+AEROCORE_DECKY_IMPORT='import "/usr/share/ublue-os/just/92-aerocore-decky-mirror.just"'
+if ! grep -Fxq "${AEROCORE_DECKY_IMPORT}" /usr/share/ublue-os/justfile; then
+  printf '\n%s\n' "${AEROCORE_DECKY_IMPORT}" >> /usr/share/ublue-os/justfile
+fi
+# Fail the image build if the public entry point cannot resolve the recipe.
+ujust --show setup-decky-mirror >/dev/null
+
 install_regular_file() {
   local source_file="$1"
   local destination_file="$2"
