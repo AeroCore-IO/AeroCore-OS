@@ -1,5 +1,5 @@
 # Allow build scripts to be referenced without being copied into the final image
-ARG BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:testing-44.20260909.1"
+ARG BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:testing-44.20260910"
 
 FROM scratch AS ctx
 COPY build_files /
@@ -15,7 +15,7 @@ ARG VERSION_TAG="latest"
 ARG VERSION_PRETTY="latest"
 ARG OSTREE_IMAGE_REF=""
 ## Other possible base images include:
-# ghcr.io/ublue-os/bazzite-deck:testing-44.20260908.3
+# ghcr.io/ublue-os/bazzite-deck:testing-44.20260910
 # ghcr.io/ublue-os/bazzite-deck:stable-44.20260820
 
 ### [IM]MUTABLE /opt
