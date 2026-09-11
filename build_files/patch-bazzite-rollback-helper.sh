@@ -17,7 +17,7 @@ patched_file=$(mktemp)
 awk '
   /^signing_scheme\(\) \{/ {
     print "signing_scheme() {"
-    print "  local current=$(rpm-ostree status -b --json | jq -r '\''.deployments | map(select(.booted == true)) | first | .["container-image-reference"] // empty'\'')"
+    print "  local current=$(rpm-ostree status -b --json | jq -r '\''.deployments | map(select(.booted == true)) | first | .[\"container-image-reference\"] // empty'\'')"
     print "  local scheme=\"ostree-unverified-registry\""
     print "  [[ \"$current\" == *\"ostree-image-signed\"* ]] && scheme=\"ostree-image-signed\""
     print "  echo \"$scheme:docker://\""
@@ -25,7 +25,7 @@ awk '
     print ""
     print "current_image_prefix() {"
     print "  local current"
-    print "  current=$(rpm-ostree status -b --json | jq -r '\''.deployments | map(select(.booted == true)) | first | .["container-image-reference"] // empty'\'')"
+    print "  current=$(rpm-ostree status -b --json | jq -r '\''.deployments | map(select(.booted == true)) | first | .[\"container-image-reference\"] // empty'\'')"
     print "  if [[ -z \"$current\" ]]; then"
     print "    echo \"Unable to determine the current booted image reference.\" >&2"
     print "    return 1"
