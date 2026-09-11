@@ -40,7 +40,12 @@ awk '
   }
   skip && /^warn_if_de_mismatch\(\) \{/ { skip=0; print; next }
   skip { next }
-  { gsub("ostree-image-signed:docker://ghcr.io/ublue-os/", "$(signing_scheme)/$(current_image_prefix)/"); print }
+  {
+    gsub("ostree-image-signed:docker://[^\"]+/", "$(signing_scheme)$(current_image_prefix)/")
+    gsub("\\$\\(signing_scheme\\)/\\$\\(current_image_prefix\\)/", "$(signing_scheme)$(current_image_prefix)/")
+    gsub("\\$\\(signing_scheme\\)/", "$(signing_scheme)")
+    print
+  }
 ' "$file" > "$patched_file"
 
 install -m 0755 "$patched_file" "$file"
