@@ -113,9 +113,15 @@ setup-decky-mirror ACTION="":
       echo "Uninstalling Decky Loader..."
       if [[ "$HAS_GRAPHICAL_SESSION" -eq 1 ]]; then
         curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" |
-          sed 's|sudo|sudo -A |g' | sh
+          sed -e 's|sudo|sudo -A |g' \
+              -e 's|sudo -A rm "${HOMEBREW_FOLDER}/services/PluginLoader"|sudo -A rm -rf "${HOMEBREW_FOLDER}/services/PluginLoader"|' \
+              -e 's|sudo -A rm "${USER_DIR}/.steam/steam/.cef-enable-remote-debugging"|sudo -A rm -f "${USER_DIR}/.steam/steam/.cef-enable-remote-debugging"|' \
+              -e 's|sudo -A rm "${USER_DIR}/.var/app/com.valvesoftware.Steam/data/Steam/.cef-enable-remote-debugging"|sudo -A rm -f "${USER_DIR}/.var/app/com.valvesoftware.Steam/data/Steam/.cef-enable-remote-debugging"|' | sh
       else
-        curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" | sh
+        curl -L "${DECKY_INSTALLER_BASE}/uninstall.sh" |
+          sed -e 's|sudo rm "${HOMEBREW_FOLDER}/services/PluginLoader"|sudo rm -rf "${HOMEBREW_FOLDER}/services/PluginLoader"|' \
+              -e 's|sudo rm "${USER_DIR}/.steam/steam/.cef-enable-remote-debugging"|sudo rm -f "${USER_DIR}/.steam/steam/.cef-enable-remote-debugging"|' \
+              -e 's|sudo rm "${USER_DIR}/.var/app/com.valvesoftware.Steam/data/Steam/.cef-enable-remote-debugging"|sudo rm -f "${USER_DIR}/.var/app/com.valvesoftware.Steam/data/Steam/.cef-enable-remote-debugging"|' | sh
       fi
       echo "Decky Loader has been uninstalled."
     }

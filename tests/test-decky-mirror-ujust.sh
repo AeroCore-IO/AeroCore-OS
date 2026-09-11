@@ -36,6 +36,13 @@ if ! rg -q 'loader\.json' "${recipe}" || ! rg -q '\.store = 2' "${recipe}" || ! 
   exit 1
 fi
 
+if ! rg -q 'rm -rf.*HOMEBREW_FOLDER.*/services/PluginLoader' "${recipe}" ||
+   ! rg -q 'rm -f.*USER_DIR.*/\.steam/steam/\.cef-enable-remote-debugging' "${recipe}" ||
+   ! rg -q 'rm -f.*USER_DIR.*/\.var/app/com\.valvesoftware\.Steam/data/Steam/\.cef-enable-remote-debugging' "${recipe}"; then
+  echo "Decky mirror recipe must make uninstall safe for missing paths" >&2
+  exit 1
+fi
+
 for script_name in install_release.sh install_prerelease.sh uninstall.sh; do
   if ! rg -q "\\$\\{DECKY_INSTALLER_BASE\\}/${script_name}" "${recipe}"; then
     echo "Decky mirror recipe does not route ${script_name} through the mirror base" >&2
