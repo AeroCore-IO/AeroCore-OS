@@ -147,3 +147,4 @@ find /etc/environment.d /etc/skel/.config/environment.d -name 99-aerocore-mirror
 
 /ctx/install-instruments.sh
 /ctx/patch-bazzite-deck-identity.sh
+/ctx/patch-bazzite-rollback-helper.sh
