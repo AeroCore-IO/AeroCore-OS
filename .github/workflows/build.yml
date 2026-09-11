@@ -215,6 +215,30 @@ jobs:
             "${DEFAULT_TAG}" \
             "${ALIAS_TAGS}"
 
+      - name: Install Syft
+        id: setup-syft
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          syft-version: v1.44.0
+
+      - name: Generate RPM SBOM
+        id: generate-sbom
+        if: github.event_name != 'pull_request'
+        env:
+          SYFT_CMD: ${{ steps.setup-syft.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          sbom="${RUNNER_TEMP}/aerocore-sbom.json"
+          mountpoint="$(sudo podman image mount "${IMAGE_NAME}:${DEFAULT_TAG}")"
+          trap 'sudo podman image unmount "${IMAGE_NAME}:${DEFAULT_TAG}"' EXIT
+          sudo "${SYFT_CMD}" "dir:${mountpoint}" \
+            --select-catalogers rpm \
+            --source-name "${IMAGE_NAME}-${VERSION_TAG}" \
+            -o "syft-json=${sbom}"
+          sudo chown "$(id -u):$(id -g)" "${sbom}"
+          echo "sbom=${sbom}" >> "$GITHUB_OUTPUT"
+
       # These `if` statements keep pull requests from publishing packages.
       # They publish default-branch builds and manual testing branch builds.
       - name: Login to GitHub Container Registry
@@ -240,6 +264,26 @@ jobs:
           digest=$(< /tmp/digestfile)
 
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Install ORAS
+        if: github.event_name != 'pull_request'
+        uses: oras-project/setup-oras@1d808f7d7f6995cc68b7bf507bfe5c5446e1dc9d # v2.0.1
+
+      - name: Upload RPM SBOM
+        if: github.event_name != 'pull_request'
+        env:
+          DIGEST: ${{ steps.push-image.outputs.digest }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SBOM: ${{ steps.generate-sbom.outputs.sbom }}
+        run: |
+          set -euo pipefail
+          echo "${GHCR_TOKEN}" | oras login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          cd "$(dirname "${SBOM}")"
+          oras attach \
+            --artifact-type application/vnd.spdx+json \
+            --annotation "filename=$(basename "${SBOM}")" \
+            "${IMAGE_REGISTRY}/${IMAGE_NAME}@${DIGEST}" \
+            "$(basename "${SBOM}")"
 
       # This section is optional and only needs to be enabled if you plan on distributing
       # your project for others to consume. You will need to create a public and private key
@@ -272,6 +316,7 @@ jobs:
          github.ref_name == 'testing-candidate')
     permissions:
       contents: write
+      packages: read
     secrets: inherit
     uses: ./.github/workflows/generate_release.yml
     with:
