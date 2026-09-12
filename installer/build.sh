@@ -11,6 +11,10 @@ OSTREE_IMAGE_REF=${OSTREE_IMAGE_REF:?}
 ostree_origin_ref="${OSTREE_IMAGE_REF}:${INSTALL_IMAGE_TAG}"
 live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
 
+# The live image may ship /root as a symlink. Ensure its target exists before
+# systemd-tmpfiles and other early-boot services process root-owned paths.
+mkdir -p "$(realpath /root)"
+
 # The installer is a live KDE environment.  Keep the installed system payload
 # separate: it is the AeroCore image, while BASE_IMAGE provides the live UI.
 # Bazzite excludes some base packages from normal transactions. The live
