@@ -42,6 +42,7 @@ assert_count 1 "${deck_condition}" "${hardware_setup}"
 assert_count 1 "${deck_condition}" "${steam}"
 assert_count 3 "${deck_condition}" "${user_setup}"
 assert_count 1 'AeroCore Steam state migration' "${steam}"
+assert_count 1 'AeroCore Return to Gaming Mode shortcut migration' "${user_setup}"
 
 # A second run must recognize the patched fixture and make no further changes.
 first_digest="$(sha256sum "${hardware_setup}" "${steam}" "${user_setup}")"
@@ -54,5 +55,6 @@ if [[ "${first_digest}" != "${second_digest}" ]]; then
 fi
 
 assert_count 1 'AeroCore Steam state migration' "${steam}"
+assert_count 1 'AeroCore Return to Gaming Mode shortcut migration' "${user_setup}"
 
 echo "Bazzite 44 Deck identity fixture passed"
