@@ -161,6 +161,8 @@ patch_desktop_branding_migration() {
 patch_gamemode_shortcut_migration() {
   local file="$1"
   local marker='AeroCore Return to Gaming Mode shortcut migration'
+  local insertion='# Run script if updated'
+  local patched_file
 
   if [[ ! -f "$file" ]]; then
     echo "Unable to locate expected Bazzite user setup file: $file" >&2
@@ -171,14 +173,28 @@ patch_gamemode_shortcut_migration() {
     return 0
   fi
 
-  cat >> "$file" <<'EOF'
+  if [[ "$(grep -Foc "$insertion" "$file" || true)" -ne 1 ]]; then
+    echo "Unable to locate the Bazzite user setup version guard in $file" >&2
+    exit 1
+  fi
 
-# AeroCore Return to Gaming Mode shortcut migration
-# Replace the legacy privileged systemd launcher left by older Bazzite images.
-if [[ -f "$HOME/Desktop/Return.desktop" ]]; then
-  sed -i 's|^Exec=systemctl start return-to-gamemode\.service$|Exec=/usr/bin/return-to-gamemode|' "$HOME/Desktop/Return.desktop"
-fi
-EOF
+  patched_file="$(mktemp)"
+  awk -v insertion="$insertion" '
+    !inserted && $0 == insertion {
+      print "# AeroCore Return to Gaming Mode shortcut migration"
+      print "# Replace the legacy privileged systemd launcher left by older Bazzite images."
+      print "if [[ -f \"$HOME/Desktop/Return.desktop\" ]]; then"
+      print "  sed -i '\''s|^Exec=systemctl start return-to-gamemode\\.service$|Exec=/usr/bin/return-to-gamemode|'\'' \"$HOME/Desktop/Return.desktop\""
+      print "fi"
+      print ""
+      inserted=1
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$file" > "$patched_file"
+
+  cp "$patched_file" "$file"
+  rm -f "$patched_file"
 }
 
 # Keep AeroCore's public image-name, while restoring the Deck capability checks

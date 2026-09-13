@@ -43,6 +43,10 @@ assert_count 1 "${deck_condition}" "${steam}"
 assert_count 3 "${deck_condition}" "${user_setup}"
 assert_count 1 'AeroCore Steam state migration' "${steam}"
 assert_count 1 'AeroCore Return to Gaming Mode shortcut migration' "${user_setup}"
+if [[ "$(grep -nF 'AeroCore Return to Gaming Mode shortcut migration' "${user_setup}" | cut -d: -f1)" -ge "$(grep -nF '# Run script if updated' "${user_setup}" | cut -d: -f1)" ]]; then
+  echo "Return to Gaming Mode migration must run before the user setup early-exit guard" >&2
+  exit 1
+fi
 
 # A second run must recognize the patched fixture and make no further changes.
 first_digest="$(sha256sum "${hardware_setup}" "${steam}" "${user_setup}")"
