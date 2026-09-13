@@ -41,12 +41,18 @@ with `INSTRUMENTS_RELEASE_REPOSITORY` and `INSTRUMENTS_RELEASE_API_BASE`.
 
 ## Local Build
 
-To build AeroCore OS locally, edit `image-template.env` to match your target configurations and then run:
+To build AeroCore OS locally, you may create a private `.env` from the
+committed template and edit it to match your target configuration:
 
 ```bash
-sudo just build
-
+cp image-template.env .env
+# edit .env
 ```
+
+`.env` is ignored by Git and optional. When it is absent, Just reads the
+required values from the runtime environment. Variables supplied by the shell
+or CI environment override matching values in `.env`, so you can test a
+different upstream base without changing files.
 
 To test a different upstream base image directly without modifying the environment files:
 

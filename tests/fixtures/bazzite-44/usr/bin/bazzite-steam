@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+# Minimal structural fixture from Bazzite 44.20260820.
+if [[ $IMAGE_NAME =~ "deck" ]]; then
+  if [[ ! -d $HOME/.local/share/Steam ]]; then
+    mkdir -p "$HOME/.local/share"
+  fi
+
+  DECK_OPTION="-steamdeck"
+fi

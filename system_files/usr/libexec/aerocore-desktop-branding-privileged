@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+about_source=/usr/share/aerocore/desktop-branding/kcm-about-distrorc
+about_target=/etc/xdg/kcm-about-distrorc
+
+# Only replace the known upstream default. Administrator changes win.
+if [[ -f "${about_source}" ]] &&
+  { [[ ! -f "${about_target}" ]] || grep -Fxq 'Name=Bazzite' "${about_target}"; }; then
+  install -Dm0644 "${about_source}" "${about_target}"
+fi

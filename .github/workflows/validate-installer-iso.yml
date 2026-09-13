@@ -13,6 +13,18 @@ jobs:
   validate:
     name: Run lightweight checks
     runs-on: ubuntu-24.04
+    # `just check` parses the whole Justfile, so provide the non-secret
+    # variables required by its top-level metadata declarations. This job
+    # does not build or publish an image; production builds use repository
+    # runtime variables in their respective workflows.
+    env:
+      IMAGE_NAME: aerocore-os
+      REPO_ORGANIZATION: aerocore-io
+      IMAGE_DESC: AeroCore customized Bazzite Deck image
+      IMAGE_KEYWORDS: bootc,oci,linux,bazzite,steam-deck,aerocore
+      IMAGE_LOGO_URL: https://avatars.githubusercontent.com/u/120078124?s=200&v=4
+      DEFAULT_TAG: testing
+      BIB_IMAGE: quay.io/centos-bootc/bootc-image-builder:latest
 
     steps:
       - name: Checkout
@@ -32,12 +44,29 @@ jobs:
         run: |
           just --unstable --fmt --check -f Justfile
 
+      - name: Test dotenv precedence
+        run: tests/test-dotenv-precedence.sh
+
       - name: Validate build scripts
         run: |
-          for script in build_files/*.sh installer/*.sh just_scripts/*.sh; do
+          for script in build_files/*.sh installer/*.sh just_scripts/*.sh tests/*.sh; do
             bash -n "$script"
           done
           bash -n system_files/usr/libexec/aerocore-instruments-setup
+          bash -n system_files/usr/libexec/aerocore-desktop-branding
+          bash -n system_files/usr/libexec/aerocore-desktop-branding-privileged
+
+      - name: Test Bazzite Deck identity patch
+        run: tests/test-patch-bazzite-deck-identity.sh
+
+      - name: Test desktop branding migration
+        run: tests/test-desktop-branding-migration.sh
+
+      - name: Test GPT root configuration
+        run: tests/test-configure-target-gpt-root.sh
+
+      - name: Validate AeroCore Anaconda profile
+        run: tests/test-aerocore-anaconda-profile.sh
 
       - name: Validate Anaconda WebUI patch
         run: |

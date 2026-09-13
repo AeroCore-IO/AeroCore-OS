@@ -1,4 +1,4 @@
-set dotenv-filename := "image-template.env"
+set dotenv-filename := ".env"
 set dotenv-load
 
 export image_name := env_var("IMAGE_NAME")
@@ -8,12 +8,12 @@ export image_keywords := env_var("IMAGE_KEYWORDS")
 export image_logo_url := env_var("IMAGE_LOGO_URL")
 export default_tag := env_var("DEFAULT_TAG")
 export bib_image := env_var("BIB_IMAGE")
-export IMAGE_BRANCH := env_var_or_default("IMAGE_BRANCH", "stable")
+export IMAGE_BRANCH := env_var_or_default("IMAGE_BRANCH", "testing-candidate")
 export VERSION_TAG := env_var_or_default("VERSION_TAG", default_tag)
 export VERSION_PRETTY := env_var_or_default("VERSION_PRETTY", VERSION_TAG)
-export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable")
+export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable-44.20260908")
 export OSTREE_IMAGE_REF := env_var_or_default("OSTREE_IMAGE_REF", "ostree-image-signed:docker://ghcr.io/" + repo_organization + "/" + image_name)
-export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:43")
+export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:44")
 export TITANOBOA_REPOSITORY := env_var_or_default("TITANOBOA_REPOSITORY", "https://github.com/Zeglius/titanoboa.git")
 export TITANOBOA_REVISION := env_var_or_default("TITANOBOA_REVISION", "7737f4748458252ac827dca14b3d6dd09298472a")
 export FLATPAK_REMOTE_URL := env_var_or_default("FLATPAK_REMOTE_URL", "")
@@ -111,8 +111,8 @@ sudoif command *args:
 #   $target_image - The tag you want to apply to the image (default: $image_name).
 #   $tag - The tag for the image (default: $default_tag).
 #
-# If the git working directory is clean, it appends the short SHA of the current HEAD
-# to the version tag supplied by the build environment.
+# If the git working directory is clean, it labels the image with the current HEAD
+# revision while keeping the image version on the build environment's VERSION_TAG.
 #
 # just build $target_image $tag
 #
@@ -130,7 +130,17 @@ build $target_image=image_name $tag=default_tag:
 
     BUILD_ARGS=()
     LABELS=()
-    for arg in BASE_IMAGE IMAGE_BRANCH VERSION_TAG VERSION_PRETTY FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
+    # The recipe tag is the channel selected by commands such as
+    # `just build localhost/aerocore-os testing`. VERSION_TAG and
+    # VERSION_PRETTY may be supplied by CI and should remain the release
+    # version stamped inside the image.
+    BUILD_CHANNEL_ARGS=(
+        "--build-arg" "IMAGE_BRANCH={{ tag }}"
+        "--build-arg" "VERSION_TAG=${VERSION_TAG:-{{ tag }}}"
+        "--build-arg" "VERSION_PRETTY=${VERSION_PRETTY:-${VERSION_TAG:-{{ tag }}}}"
+    )
+
+    for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
         if [[ -n "${!arg:-}" ]]; then
             BUILD_ARGS+=("--build-arg" "${arg}=${!arg}")
         fi
@@ -140,9 +150,10 @@ build $target_image=image_name $tag=default_tag:
         GIT_SHA=$(git rev-parse --short HEAD)
         LABELS+=("--label" "io.artifacthub.package.readme-url=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
         LABELS+=("--label" "org.opencontainers.image.documentation=https://raw.githubusercontent.com/{{ repo_organization }}/{{ image_name }}/${GIT_SHA}/README.md")
+        LABELS+=("--label" "org.opencontainers.image.revision=${GIT_SHA}")
         LABELS+=("--label" "org.opencontainers.image.source=https://github.com/{{ repo_organization }}/{{ image_name }}/blob/${GIT_SHA}/Containerfile")
         LABELS+=("--label" "org.opencontainers.image.url=https://github.com/{{ repo_organization }}/{{ image_name }}/tree/${GIT_SHA}")
-        LABELS+=("--label" "org.opencontainers.image.version={{ VERSION_TAG }}-${GIT_SHA}")
+        LABELS+=("--label" "org.opencontainers.image.version=${VERSION_TAG:-{{ tag }}}")
     fi
 
     # Image metadata for https://artifacthub.io/ - This is optional but is highly recommended so we all can get a index of all the custom images
@@ -158,7 +169,9 @@ build $target_image=image_name $tag=default_tag:
     LABELS+=("--label" "org.opencontainers.image.vendor={{ repo_organization }}")
 
     # This actually builds the image!
-    PODMAN_BUILD_ARGS=("${BUILD_ARGS[@]}" "${LABELS[@]}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
+    # The build always exposes a secret mount.  Local builds use /dev/null;
+    # CI supplies a short-lived GitHub token file for private release assets.
+    PODMAN_BUILD_ARGS=("${BUILD_CHANNEL_ARGS[@]}" "${BUILD_ARGS[@]}" "${LABELS[@]}" --secret "id=GITHUB_TOKEN,src=${GITHUB_TOKEN_FILE:-/dev/null}" --pull=newer --tag "${target_image}:${tag}" --file Containerfile)
 
     podman build "${PODMAN_BUILD_ARGS[@]}" .
 

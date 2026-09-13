@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Called from Bazzite's user-level setup. The setup's version files provide
+# the once-per-image-version guard; this helper only touches the current user.
+plasma_config="${HOME}/.config/plasma-org.kde.plasma.desktop-appletsrc"
+
+if [[ -f "${plasma_config}" ]] && grep -Fxq 'icon=distributor-logo-steamdeck' "${plasma_config}"; then
+  updated_config="$(mktemp "${plasma_config}.XXXXXX")"
+  trap 'rm -f -- "${updated_config}"' EXIT
+  sed 's/^icon=distributor-logo-steamdeck$/icon=aerocore-logo/' \
+    "${plasma_config}" > "${updated_config}"
+  mv -- "${updated_config}" "${plasma_config}"
+  trap - EXIT
+fi

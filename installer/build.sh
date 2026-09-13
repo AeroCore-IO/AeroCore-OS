@@ -9,6 +9,11 @@ INSTALL_IMAGE_PAYLOAD_ARCHIVE=${INSTALL_IMAGE_PAYLOAD_ARCHIVE:-}
 INSTALL_IMAGE_TAG=${INSTALL_IMAGE_TAG:?}
 OSTREE_IMAGE_REF=${OSTREE_IMAGE_REF:?}
 ostree_origin_ref="${OSTREE_IMAGE_REF}:${INSTALL_IMAGE_TAG}"
+live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
+
+# The live image may ship /root as a symlink. Ensure its target exists before
+# systemd-tmpfiles and other early-boot services process root-owned paths.
+mkdir -p "$(realpath /root)"
 
 # The installer is a live KDE environment.  Keep the installed system payload
 # separate: it is the AeroCore image, while BASE_IMAGE provides the live UI.
@@ -22,6 +27,7 @@ dnf --setopt=excludepkgs= install -y \
   libblockdev-lvm \
   dracut-live \
   livesys-scripts \
+  gdisk \
   grub2-efi-x64 \
   grub2-efi-x64-cdboot
 
@@ -32,13 +38,24 @@ dnf --setopt=excludepkgs= reinstall -y \
   grub2-efi-x64-cdboot
 
 # Fedora 43's anaconda-webui bundle embeds a Cockpit password helper from
-# before cockpit-project/cockpit@900c13f. Restore that upstream fix so a weak
-# pwscore result is returned as score 0 instead of rejecting the WebUI promise.
-"${SCRIPT_DIR}/patch-anaconda-webui.sh"
+# before cockpit-project/cockpit@900c13f. Fedora 44 already carries the fix;
+# retain the workaround only for explicitly requested Fedora 43 live images.
+if [[ "${live_version_id}" == "43" ]]; then
+  "${SCRIPT_DIR}/patch-anaconda-webui.sh"
+fi
 
 # Apply the same AeroCore overlay to the live session where possible.
 if [[ -d /src/system_files ]]; then
   cp -a /src/system_files/. /
+fi
+
+# The live base can already contain this About System asset as a symlink.
+# Replace the link itself so the installer UI also renders AeroCore branding.
+if [[ -f /src/system_files/usr/share/pixmaps/system-logo-white.png ]]; then
+  rm -f /usr/share/pixmaps/system-logo-white.png
+  install -Dm0644 \
+    /src/system_files/usr/share/pixmaps/system-logo-white.png \
+    /usr/share/pixmaps/system-logo-white.png
 fi
 
 BRANDING_DIR="${SCRIPT_DIR}/branding"
@@ -59,6 +76,10 @@ install -Dm0755 \
   "${SCRIPT_DIR}/configure-target-grub.sh" \
   /usr/libexec/aerocore-configure-target-grub
 
+install -Dm0755 \
+  "${SCRIPT_DIR}/configure-target-gpt-root.sh" \
+  /usr/libexec/aerocore-configure-target-gpt-root
+
 # Plasma's live-session launcher defaults to start-here, and Fedora keeps
 # LOGO=fedora-logo-icon in the base live environment.
 for size in 16x16 22x22 24x24 32x32 36x36 48x48 64x64 96x96 128x128 256x256; do
@@ -78,10 +99,10 @@ if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
     /usr/share/icons/hicolor/scalable/places/start-here.svg
 fi
 
-live_version_id="$(awk -F= '$1 == "VERSION_ID" { gsub(/\"/, "", $2); print $2; exit }' /usr/lib/os-release)"
 live_product_name="AeroCore OS"
 sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
 sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"${live_product_name} ${live_version_id} (Kinoite)\"/" /usr/lib/os-release
+sed -i 's/^ID=.*/ID=aerocore/' /usr/lib/os-release
 sed -i "s/^LOGO=.*/LOGO=distributor-logo/" /usr/lib/os-release
 printf '%s release %s (Kinoite)\n' "${live_product_name}" "${live_version_id}" > /etc/system-release
 
@@ -130,6 +151,44 @@ mount --bind \${target_tmp} /var/tmp
 df -h /var/tmp \${target_tmp}
 %end
 
+# bootc relies on systemd's GPT auto-root discovery on the first boot. Anaconda
+# can leave the installed root partition with the generic Linux filesystem
+# type, which makes /dev/gpt-auto-root unavailable even though the filesystem
+# itself is healthy. Normalize the type before ostreecontainer deployment.
+%pre-install --erroronfail --log=/tmp/aerocore-gpt-root.log
+set -eux
+target_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}; then
+        target_root=\${root}
+        break
+    fi
+done
+if [ x\${target_root} = x ]; then
+    echo No mounted target system found for GPT root configuration >&2
+    exit 1
+fi
+/usr/libexec/aerocore-configure-target-gpt-root \${target_root}
+%end
+
+# Do not let stale Fedora boot files from an earlier installation collide with
+# the bootc payload being installed. This matches the upstream Bazzite
+# installer behavior; other vendor EFI directories are left untouched.
+%pre-install --erroronfail --log=/tmp/aerocore-efi-cleanup.log
+set -eux
+efi_root=
+for root in /mnt/sysroot /mnt/sysimage /var/mnt/sysroot /var/mnt/sysimage; do
+    if mountpoint -q \${root}/boot/efi; then
+        efi_root=\${root}/boot/efi
+        break
+    fi
+done
+if [ x\${efi_root} = x ]; then
+    echo No mounted EFI system partition found for cleanup >&2
+    exit 1
+fi
+rm -rf \${efi_root}/EFI/fedora
+%end
 ostreecontainer --url=${INSTALL_IMAGE_PAYLOAD} --transport=containers-storage --no-signature-verification
 
 # The local containers-storage deployment is intentionally unverified because
