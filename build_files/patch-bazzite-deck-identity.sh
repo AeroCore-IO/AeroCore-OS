@@ -158,29 +158,6 @@ patch_desktop_branding_migration() {
   fi
 }
 
-patch_gamemode_shortcut_migration() {
-  local file="$1"
-  local marker='AeroCore Return to Gaming Mode shortcut migration'
-
-  if [[ ! -f "$file" ]]; then
-    echo "Unable to locate expected Bazzite user setup file: $file" >&2
-    exit 1
-  fi
-
-  if grep -Fq "$marker" "$file"; then
-    return 0
-  fi
-
-  cat >> "$file" <<'EOF'
-
-# AeroCore Return to Gaming Mode shortcut migration
-# Replace the legacy privileged systemd launcher left by older Bazzite images.
-if [[ -f "$HOME/Desktop/Return.desktop" ]]; then
-  sed -i 's|^Exec=systemctl start return-to-gamemode\.service$|Exec=/usr/bin/return-to-gamemode|' "$HOME/Desktop/Return.desktop"
-fi
-EOF
-}
-
 # Keep AeroCore's public image-name, while restoring the Deck capability checks
 # used by Bazzite's runtime scripts. These are literal source lines; variable
 # expansion must happen later, when the scripts run on the installed system.
@@ -220,4 +197,3 @@ patch_condition \
   3
 
 patch_desktop_branding_migration "$(target_path /usr/libexec/bazzite-user-setup)"
-patch_gamemode_shortcut_migration "$(target_path /usr/libexec/bazzite-user-setup)"
