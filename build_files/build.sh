@@ -14,6 +14,15 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# Bazzite's Kinoite/Plasma desktop shortcut used to start a privileged
+# return-to-gamemode.service.  Current Bazzite invokes the user-session entry
+# point directly; keep the shortcut correct when the base image still ships
+# the legacy Exec= line.
+RETURN_TO_GAMING_DESKTOP="/etc/skel/Desktop/Return.desktop"
+if [[ -f "${RETURN_TO_GAMING_DESKTOP}" ]]; then
+  sed -i 's|^Exec=.*|Exec=/usr/bin/return-to-gamemode|' "${RETURN_TO_GAMING_DESKTOP}"
+fi
+
 # ujust loads explicit imports, not every fragment in the just/ directory.
 # Preserve upstream recipes and register our overlay after copying its files.
 AEROCORE_DECKY_IMPORT='import "/usr/share/ublue-os/just/92-aerocore-decky-mirror.just"'
