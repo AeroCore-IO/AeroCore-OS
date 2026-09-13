@@ -109,11 +109,25 @@ def main() -> None:
     previous_info = image_info(args.image, previous) if previous else {}
     start_revision = previous_info.get("Labels", {}).get("org.opencontainers.image.revision")
     end_revision = current_info.get("Labels", {}).get("org.opencontainers.image.revision")
-    commits = (
-        run("git", "log", "--format=%H%x09%s%x09%an", f"{start_revision}..{end_revision}").splitlines()
-        if start_revision and end_revision
-        else []
-    )
+    commits: list[str] = []
+    if start_revision and end_revision:
+        try:
+            commits = run(
+                "git",
+                "log",
+                "--format=%H%x09%s%x09%an",
+                f"{start_revision}..{end_revision}",
+            ).splitlines()
+        except subprocess.CalledProcessError as error:
+            # A release may be built after histories are intentionally joined
+            # or rewritten. In that case the previous image revision can be
+            # valid metadata but not a reachable Git revision in this checkout.
+            # Package changes and the release itself remain valid, so omit the
+            # commit section instead of failing the whole release job.
+            print(
+                "Warning: unable to determine commit range "
+                f"{start_revision}..{end_revision}: {error}"
+            )
 
     lines = [args.handwritten.strip() or f"This is an automatically generated changelog for release `{args.current}`.", ""]
     if previous:
