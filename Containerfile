@@ -1,5 +1,5 @@
 # Allow build scripts to be referenced without being copied into the final image
-ARG BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:stable-44.20260919"
+ARG BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:stable-44.20260921"
 
 FROM scratch AS ctx
 COPY build_files /
@@ -15,8 +15,8 @@ ARG VERSION_TAG="latest"
 ARG VERSION_PRETTY="latest"
 ARG OSTREE_IMAGE_REF=""
 ## Other possible base images include:
-# ghcr.io/ublue-os/bazzite-deck:stable-44.20260919
-# ghcr.io/ublue-os/bazzite-deck:testing-44.20260908.3
+# ghcr.io/ublue-os/bazzite-deck:stable-44.20260921
+# ghcr.io/ublue-os/bazzite-deck:testing-44.202609019
 
 ### [IM]MUTABLE /opt
 ## Some bootable images, like Fedora, have /opt symlinked to /var/opt, in order to
