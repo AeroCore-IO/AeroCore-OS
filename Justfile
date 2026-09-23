@@ -11,7 +11,7 @@ export bib_image := env_var("BIB_IMAGE")
 export IMAGE_BRANCH := env_var_or_default("IMAGE_BRANCH", "testing-candidate")
 export VERSION_TAG := env_var_or_default("VERSION_TAG", default_tag)
 export VERSION_PRETTY := env_var_or_default("VERSION_PRETTY", VERSION_TAG)
-export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable-44.20260919")
+export BASE_IMAGE := env_var_or_default("BASE_IMAGE", "ghcr.io/ublue-os/bazzite-deck:stable-44.20260921")
 export OSTREE_IMAGE_REF := env_var_or_default("OSTREE_IMAGE_REF", "ostree-image-signed:docker://ghcr.io/" + repo_organization + "/" + image_name)
 export LIVE_BASE_IMAGE := env_var_or_default("LIVE_BASE_IMAGE", "quay.io/fedora/fedora-kinoite:44")
 export TITANOBOA_REPOSITORY := env_var_or_default("TITANOBOA_REPOSITORY", "https://github.com/Zeglius/titanoboa.git")
@@ -138,6 +138,7 @@ build $target_image=image_name $tag=default_tag:
         "--build-arg" "IMAGE_BRANCH={{ tag }}"
         "--build-arg" "VERSION_TAG=${VERSION_TAG:-{{ tag }}}"
         "--build-arg" "VERSION_PRETTY=${VERSION_PRETTY:-${VERSION_TAG:-{{ tag }}}}"
+        "--label" "org.opencontainers.image.base.name=${BASE_IMAGE:-ghcr.io/ublue-os/bazzite-deck:stable-44.20260921}"
     )
 
     for arg in BASE_IMAGE FLATPAK_REMOTE_URL HOMEBREW_BOTTLE_DOMAIN HOMEBREW_API_DOMAIN OSTREE_IMAGE_REF INSTRUMENTS_ENABLED INSTRUMENTS_RELEASE_REPOSITORY INSTRUMENTS_VERSION INSTRUMENTS_RELEASE_API_BASE; do
