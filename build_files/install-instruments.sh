@@ -48,7 +48,29 @@ github_curl() {
     args+=(--header "Authorization: Bearer $(</run/secrets/GITHUB_TOKEN)")
   fi
 
-  curl "${args[@]}" "$@"
+  if curl "${args[@]}" "$@"; then
+    return 0
+  fi
+
+  # The default release repository is public. A workflow token from another
+  # repository can be rejected by GitHub (403), even though anonymous access
+  # to the same release is allowed. Retry without credentials so a stale or
+  # cross-repository token cannot break public image builds.
+  if [[ -s /run/secrets/GITHUB_TOKEN ]]; then
+    local anonymous_args=(
+      --fail
+      --location
+      --retry 3
+      --retry-delay 2
+      --retry-max-time 60
+      --silent
+      --show-error
+    )
+    curl "${anonymous_args[@]}" "$@"
+    return $?
+  fi
+
+  return 1
 }
 
 if [[ "${INSTRUMENTS_VERSION}" == "latest" ]]; then
