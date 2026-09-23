@@ -161,6 +161,25 @@ def upstream_release_commit(tag: str) -> str | None:
         return None
 
 
+def upstream_compare_commits(start_revision: str | None, end_revision: str | None) -> list[tuple[str, str, str]]:
+    if not start_revision or not end_revision or start_revision == end_revision:
+        return []
+    request = urllib.request.Request(
+        f"https://api.github.com/repos/ublue-os/bazzite/compare/{start_revision}...{end_revision}",
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "AeroCore-OS-release-notes"},
+    )
+    with urllib.request.urlopen(request, timeout=60) as response:
+        compare = json.load(response)
+    return [
+        (
+            item["sha"],
+            item["commit"]["message"].splitlines()[0],
+            item["commit"].get("author", {}).get("name", "Unknown"),
+        )
+        for item in compare.get("commits", [])
+    ]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", required=True, help="registry/repository without tag")
@@ -201,22 +220,8 @@ def main() -> None:
     current_base_tag = base_image.rpartition(":")[2] if base_image else ""
     start_revision = upstream_release_commit(previous_base_tag) if previous_base_tag else None
     end_revision = upstream_release_commit(current_base_tag) if current_base_tag else None
-    upstream_commits = []
-    if start_revision and end_revision and start_revision != end_revision:
-        request = urllib.request.Request(
-            f"https://api.github.com/repos/ublue-os/bazzite/compare/{start_revision}...{end_revision}",
-            headers={"Accept": "application/vnd.github+json", "User-Agent": "AeroCore-OS-release-notes"},
-        )
-        with urllib.request.urlopen(request, timeout=60) as response:
-            compare = json.load(response)
-        upstream_commits = [
-            (
-                item["sha"],
-                item["commit"]["message"].splitlines()[0],
-                item["commit"]["author"].get("name", "Unknown"),
-            )
-            for item in compare.get("commits", [])
-        ]
+    upstream_commits = upstream_compare_commits(start_revision, end_revision)
+    upstream_range_available = bool(start_revision and end_revision)
 
     start_revision = previous_info.get("Labels", {}).get("org.opencontainers.image.revision")
     end_revision = current_info.get("Labels", {}).get("org.opencontainers.image.revision")
@@ -255,15 +260,19 @@ def main() -> None:
 
     lines += ["", "### Commits", "", "| Hash | Subject | Author |", "| --- | --- | --- |"]
     if upstream_commits:
-        lines.append("| | **Upstream Bazzite** | | |")
+        lines.append("| **Upstream Bazzite** | | |")
         for commit_hash, subject, author in upstream_commits:
-            lines.append(f"| | **[{commit_hash[:7]}](https://github.com/ublue-os/bazzite/commit/{commit_hash})** | {subject} | {author} |")
+            lines.append(f"| [{commit_hash[:7]}](https://github.com/ublue-os/bazzite/commit/{commit_hash}) | {subject} | {author} |")
+    elif upstream_range_available:
+        lines.append("| **Upstream Bazzite** | No commits between the selected base versions | — |")
+    else:
+        lines.append("| **Upstream Bazzite** | Commit range unavailable (previous image may predate base image metadata) | — |")
     if aerocore_commits:
-        lines.append("| | **AeroCore OS** | | |")
+        lines.append("| **AeroCore OS** | | |")
     for commit_hash, subject, author in aerocore_commits:
-        lines.append(f"| | **[{commit_hash[:7]}](https://github.com/{args.repository}/commit/{commit_hash})** | {subject} | {author} |")
-    if not upstream_commits and not aerocore_commits:
-        lines.append("| — | No commit range available | — |")
+        lines.append(f"| [{commit_hash[:7]}](https://github.com/{args.repository}/commit/{commit_hash}) | {subject} | {author} |")
+    if not aerocore_commits:
+        lines.append("| **AeroCore OS** | No commits between the selected image versions | — |")
 
     lines += ["", "### All Images", "", "| | Name | Previous | New |", "| --- | --- | --- | --- |"]
     if previous and previous_packages is None:
