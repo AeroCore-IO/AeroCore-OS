@@ -66,7 +66,7 @@ image and then run:
 
 ```bash
 sudo just build
-just build-installer-iso
+just build-live-iso
 just run-installer-iso
 ```
 

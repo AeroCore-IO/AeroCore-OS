@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-installer-iso:
+  build-live-iso:
     name: Build KDE live ISO
     runs-on: ubuntu-24.04
     permissions:
