@@ -30,9 +30,8 @@ alias run-vm := run-vm-qcow2
 alias build-installer := build-installer-iso
 alias run-installer := run-installer-iso
 # Backward-compatible aliases for the Titanoboa live ISO build.
-alias build-live-iso := build-installer-iso
+alias build-live-installer := build-live-iso
 alias run-live-iso := run-installer-iso
-alias build-live-installer := build-installer-iso
 alias run-live-installer := run-installer-iso
 
 [private]
@@ -40,8 +39,8 @@ default:
     @just --list
 
 # Build the same Titanoboa-based live ISO as CI
-build-installer-iso $target_image=("localhost/" + image_name) $tag=default_tag:
-    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-installer-iso.sh
+build-live-iso $target_image=("localhost/" + image_name) $tag=default_tag:
+    @IMAGE_NAME="{{ target_image }}" IMAGE_TAG="{{ tag }}" ./just_scripts/build-live-iso.sh
 
 # Boot the live ISO with QEMU
 run-installer-iso:
@@ -385,9 +384,9 @@ build-qcow2 $target_image=("localhost/" + image_name) $tag=default_tag: && (_bui
 [group('Build Virtal Machine Image')]
 build-raw $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "raw" "disk_config/disk.toml")
 
-# Build an ISO virtual machine image
+# Build an installer ISO image
 [group('Build Virtal Machine Image')]
-build-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso-kde.toml")
+build-installer-iso $target_image=("localhost/" + image_name) $tag=default_tag: && (_build-bib target_image tag "iso" "disk_config/iso-kde.toml")
 
 # Rebuild a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
