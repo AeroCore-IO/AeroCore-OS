@@ -48,7 +48,29 @@ github_curl() {
     args+=(--header "Authorization: Bearer $(</run/secrets/GITHUB_TOKEN)")
   fi
 
-  curl "${args[@]}" "$@"
+  if curl "${args[@]}" "$@"; then
+    return 0
+  fi
+
+  # The default release repository is public. A workflow token from another
+  # repository can be rejected by GitHub (403), even though anonymous access
+  # to the same release is allowed. Retry without credentials so a stale or
+  # cross-repository token cannot break public image builds.
+  if [[ -s /run/secrets/GITHUB_TOKEN ]]; then
+    local anonymous_args=(
+      --fail
+      --location
+      --retry 3
+      --retry-delay 2
+      --retry-max-time 60
+      --silent
+      --show-error
+    )
+    curl "${anonymous_args[@]}" "$@"
+    return $?
+  fi
+
+  return 1
 }
 
 if [[ "${INSTRUMENTS_VERSION}" == "latest" ]]; then
@@ -129,13 +151,12 @@ required_paths=(
   install.sh
   appimage/AppRun
   appimage/AppRun.wrapped
-  sidecar/hhd-input-helper.cjs
-  sidecar/vendor/hhd-input-helper/instruments_hhd_input/__init__.py
+  sidecar/sidecar-main.cjs
+  sidecar/aerocore-bridge.cjs
   runtime/avionics
   runtime/cabin
   runtime/wing
   runtime/node/bin/node
-  python-wheelhouse
   pkg/systemd/ac-avionics.service
   pkg/systemd/ac-cabin.service
   pkg/systemd/ac-wing.service
@@ -151,8 +172,7 @@ for path in "${required_paths[@]}"; do
   fi
 done
 
-if [[ ! -f "$payload/pkg/aerocore-booster.sh" &&
-  ! -f "$payload/pkg/instruments-ng.sh" ]]; then
+if [[ ! -f "$payload/pkg/aerocore-booster.sh" ]]; then
   echo "Booster launcher is missing from the release payload" >&2
   exit 1
 fi
