@@ -225,16 +225,23 @@ def main() -> None:
 
     start_revision = previous_info.get("Labels", {}).get("org.opencontainers.image.revision")
     end_revision = current_info.get("Labels", {}).get("org.opencontainers.image.revision")
-    aerocore_commits = (
-        [
-            (item.split("\t", 2)[0], item.split("\t", 2)[1], item.split("\t", 2)[2])
-            for item in run(
-                "git", "log", "--format=%H%x09%s%x09%an", f"{start_revision}..{end_revision}"
-            ).splitlines()
-        ]
-        if start_revision and end_revision and start_revision != end_revision
-        else []
-    )
+    aerocore_commits: list[tuple[str, str, str]] = []
+    if start_revision and end_revision and start_revision != end_revision:
+        try:
+            aerocore_commits = [
+                (item.split("\t", 2)[0], item.split("\t", 2)[1], item.split("\t", 2)[2])
+                for item in run(
+                    "git", "log", "--format=%H%x09%s%x09%an", f"{start_revision}..{end_revision}"
+                ).splitlines()
+            ]
+        except subprocess.CalledProcessError as error:
+            # Release metadata can point to revisions outside this checkout's
+            # history after histories are joined or rewritten. Keep the package
+            # and upstream changelog sections and omit only AeroCore commits.
+            print(
+                "Warning: unable to determine AeroCore commit range "
+                f"{start_revision}..{end_revision}: {error}"
+            )
 
     lines = [args.handwritten.strip() or f"This is an automatically generated changelog for release `{args.current}`.", ""]
     if base_image:
