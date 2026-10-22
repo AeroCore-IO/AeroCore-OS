@@ -14,6 +14,19 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# Keep Bazzite's game mode news hook unchanged; only switch its feed URL.
+NEWS_HOOK_CONFIG=/etc/gamemode-news-hook.conf
+if [[ ! -f "${NEWS_HOOK_CONFIG}" ]]; then
+  echo "Unable to locate game mode news hook config: ${NEWS_HOOK_CONFIG}" >&2
+  exit 1
+fi
+sed -i \
+  's|^github = .*|github = https://git.mirror.aerocore.com.cn/AeroCore-IO/aerocore-os-gamemode-news/plain/announcements.json?h=testing|' \
+  "${NEWS_HOOK_CONFIG}"
+grep -Fxq \
+  'github = https://git.mirror.aerocore.com.cn/AeroCore-IO/aerocore-os-gamemode-news/plain/announcements.json?h=testing' \
+  "${NEWS_HOOK_CONFIG}"
+
 # Bazzite's Kinoite/Plasma desktop shortcut used to start a privileged
 # return-to-gamemode.service.  Current Bazzite invokes the user-session entry
 # point directly; keep the shortcut correct when the base image still ships
