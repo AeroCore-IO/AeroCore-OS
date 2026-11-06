@@ -30,8 +30,8 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
       ISO_FILE_TAG: ${{ github.ref_name == 'testing' && 'testing' || (inputs.image_tag || 'latest') }}
       # Keep these aligned with the Fedora major used by the target bazzite-deck base image.
-      LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:44
-      FEDORA_VERSION: "44"
+      LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:45
+      FEDORA_VERSION: "45"
       OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
 
     steps:
