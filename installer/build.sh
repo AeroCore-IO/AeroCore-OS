@@ -97,7 +97,22 @@ if [[ -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg ]]; then
     /usr/share/icons/hicolor/scalable/apps/start-here.svg
   cp -f /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
     /usr/share/icons/hicolor/scalable/places/start-here.svg
+  install -m0644 /usr/share/icons/hicolor/scalable/places/distributor-logo.svg \
+    /usr/share/icons/hicolor/scalable/apps/aerocore-logo.svg
 fi
+
+# Bazzite's first-boot setup and Steam autostart can fill the Live overlay,
+# which shares the small /run tmpfs, before Anaconda can start.
+for unit in brew-setup.service brew-update.timer brew-upgrade.timer \
+  bazzite-hardware-setup.service ublue-hardware-setup.service \
+  ublue-system-setup.service bazzite-flatpak-manager.service \
+  ublue-flatpak-manager.service; do
+  systemctl disable "${unit}" || true
+done
+for unit in bazzite-user-setup.service ublue-user-setup.service; do
+  systemctl --global disable "${unit}" || true
+done
+rm -f /etc/skel/.config/autostart/steam*.desktop
 
 live_product_name="AeroCore OS"
 sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
@@ -129,27 +144,27 @@ else
   podman pull "${INSTALL_IMAGE_PAYLOAD}"
 fi
 
+# Match Bazzite's dedicated Live-session temporary filesystem for ostree.
+rm -rf /var/tmp
+mkdir -m 1777 /var/tmp
+cat > /etc/systemd/system/var-tmp.mount <<'EOF'
+[Unit]
+Description=Larger tmpfs for /var/tmp on live system
+
+[Mount]
+What=tmpfs
+Where=/var/tmp
+Type=tmpfs
+Options=mode=1777,size=50%%,nr_inodes=1m,x-systemd.graceful-option=usrquota
+
+[Install]
+WantedBy=local-fs.target
+EOF
+systemctl enable var-tmp.mount
+
 # Tell Anaconda to install the bootc container that was loaded above.
 mkdir -p /var/lib/rpm-state
 cat >> /usr/share/anaconda/interactive-defaults.ks <<EOF
-%pre-install --log=/tmp/aerocore-var-tmp.log
-set -eux
-target_tmp=
-for root in /mnt/sysimage /mnt/sysroot /var/mnt/sysimage; do
-    if mountpoint -q \${root}; then
-        target_tmp=\${root}/var/tmp
-        break
-    fi
-done
-if [ x\${target_tmp} = x ]; then
-    echo No mounted target system found for /var/tmp bind mount >&2
-    exit 1
-fi
-mkdir -p \${target_tmp}
-chmod 1777 \${target_tmp}
-mount --bind \${target_tmp} /var/tmp
-df -h /var/tmp \${target_tmp}
-%end
 
 # bootc relies on systemd's GPT auto-root discovery on the first boot. Anaconda
 # can leave the installed root partition with the generic Linux filesystem
