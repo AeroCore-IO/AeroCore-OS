@@ -112,7 +112,8 @@ done
 for unit in bazzite-user-setup.service ublue-user-setup.service; do
   systemctl --global disable "${unit}" || true
 done
-rm -f /etc/skel/.config/autostart/steam*.desktop
+rm -f /etc/skel/.config/autostart/steam*.desktop \
+  /etc/skel/.config/autostart/bazzite-portal.desktop
 
 live_product_name="AeroCore OS"
 sed -i "s/^NAME=.*/NAME=\"${live_product_name}\"/" /usr/lib/os-release
