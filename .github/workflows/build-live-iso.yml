@@ -66,7 +66,8 @@ jobs:
           sudo podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
           fedora_version="$(sudo podman run --rm --network none --entrypoint /usr/bin/rpm "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" -E %fedora)"
           [[ "${fedora_version}" =~ ^[0-9]+$ ]] || { echo "Invalid Fedora version: ${fedora_version}" >&2; exit 1; }
-          echo "LIVE_BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable-${fedora_version}" >> "$GITHUB_ENV"
+          [[ "${fedora_version}" == 45 ]] || { echo "Expected Fedora 45 payload, got ${fedora_version}" >&2; exit 1; }
+          echo "LIVE_BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable-45.20261112" >> "$GITHUB_ENV"
 
       - name: Build installer ISO payload
         run: |

@@ -1,7 +1,7 @@
 # Build the installer ISO payload from a desktop Bazzite runtime.
 # The image installed to disk is supplied separately as INSTALL_IMAGE_PAYLOAD.
 
-ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable-44.20261026
+ARG BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable-45.20261112
 ARG IMAGE_VENDOR=aerocore-io
 ARG IMAGE_NAME=aerocore-os
 ARG INSTALL_IMAGE_PAYLOAD=ghcr.io/${IMAGE_VENDOR}/${IMAGE_NAME}:stable

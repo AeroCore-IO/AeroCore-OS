@@ -25,7 +25,7 @@ env:
   IMAGE_LOGO_URL: ${{ vars.IMAGE_LOGO_URL || 'https://avatars.githubusercontent.com/u/120078124?s=200&v=4' }}
   DEFAULT_TAG: ${{ vars.DEFAULT_TAG || 'stable' }}
   BIB_IMAGE: ${{ vars.BIB_IMAGE || 'quay.io/centos-bootc/bootc-image-builder:latest' }}
-  BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable-44.20261026' }}
+  BASE_IMAGE: ${{ vars.BASE_IMAGE || 'ghcr.io/ublue-os/bazzite-deck:stable-45.20261112' }}
   FLATPAK_REMOTE_URL: ${{ vars.FLATPAK_REMOTE_URL }}
   HOMEBREW_BOTTLE_DOMAIN: ${{ vars.HOMEBREW_BOTTLE_DOMAIN }}
   HOMEBREW_API_DOMAIN: ${{ vars.HOMEBREW_API_DOMAIN }}
@@ -101,9 +101,9 @@ jobs:
           set -euo pipefail
 
           if [[ "${GITHUB_REF_NAME}" == "unstable" ]]; then
-            BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:testing-45.20261027.3"
+            BASE_IMAGE="ghcr.io/ublue-os/bazzite-deck:stable-45.20261112"
           else
-            BASE_IMAGE="${BASE_IMAGE_VAR:-ghcr.io/ublue-os/bazzite-deck:stable-44.20261026}"
+            BASE_IMAGE="${BASE_IMAGE_VAR:-ghcr.io/ublue-os/bazzite-deck:stable-45.20261112}"
           fi
           echo "Using BASE_IMAGE=${BASE_IMAGE}"
           echo "BASE_IMAGE=${BASE_IMAGE}" >> "$GITHUB_ENV"
