@@ -8,6 +8,8 @@ build_script="${project_root}/installer/build.sh"
 
 grep -qx 'profile_id = aerocore' "${profile}"
 grep -qx 'os_id = aerocore' "${profile}"
+grep -qx 'physical_root = /var/mnt/sysimage' "${profile}"
+grep -qx 'system_root = /var/mnt/sysroot' "${profile}"
 grep -Fqx "sed -i 's/^ID=.*/ID=aerocore/' /usr/lib/os-release" "${build_script}"
 
 if grep -Eq '^[[:space:]]*(UserSpoke|anaconda-screen-accounts)[[:space:]]*$' "${profile}"; then
