@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Install to Hard Drive
+Exec=liveinst
+Icon=org.fedoraproject.AnacondaInstaller

@@ -29,9 +29,6 @@ jobs:
       IMAGE_NAME: ${{ vars.IMAGE_NAME || github.event.repository.name }}
       IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
       ISO_FILE_TAG: ${{ github.ref_name == 'testing' && 'testing' || (inputs.image_tag || 'latest') }}
-      # Keep these aligned with the Fedora major used by the target bazzite-deck base image.
-      LIVE_BASE_IMAGE: quay.io/fedora/fedora-kinoite:45
-      FEDORA_VERSION: "45"
       OSTREE_IMAGE_REF: ${{ vars.OSTREE_IMAGE_REF }}
 
     steps:
@@ -67,6 +64,10 @@ jobs:
       - name: Pull AeroCore install image
         run: |
           sudo podman pull "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          fedora_version="$(sudo podman run --rm --network none --entrypoint /usr/bin/rpm "${IMAGE_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" -E %fedora)"
+          [[ "${fedora_version}" =~ ^[0-9]+$ ]] || { echo "Invalid Fedora version: ${fedora_version}" >&2; exit 1; }
+          [[ "${fedora_version}" == 45 ]] || { echo "Expected Fedora 45 payload, got ${fedora_version}" >&2; exit 1; }
+          echo "LIVE_BASE_IMAGE=ghcr.io/ublue-os/bazzite:stable-45.20261112" >> "$GITHUB_ENV"
 
       - name: Build installer ISO payload
         run: |

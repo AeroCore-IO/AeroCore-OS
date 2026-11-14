@@ -7,7 +7,7 @@ cd "${project_root}"
 
 image_name="${IMAGE_NAME:-localhost/$(just image_name)}"
 image_tag="${IMAGE_TAG:-$(just generate-default-tag)}"
-live_base_image="${LIVE_BASE_IMAGE:-quay.io/fedora/fedora-kinoite:45}"
+live_base_image="${LIVE_BASE_IMAGE:-}"
 titanoboa_repository="${TITANOBOA_REPOSITORY:-https://github.com/Zeglius/titanoboa.git}"
 titanoboa_revision="${TITANOBOA_REVISION:-7737f4748458252ac827dca14b3d6dd09298472a}"
 source_image="${image_name}:${image_tag}"
@@ -24,6 +24,7 @@ install_image_ref="${ostree_image_ref#ostree-image-signed:docker://}"
 install_image_ref="${install_image_ref#ostree-unverified-registry:docker://}"
 install_image_ref="${install_image_ref#docker://}"
 payload="${install_image_ref}:${image_tag}"
+installer_image="localhost/aerocore-os-installer:${image_tag}"
 output_dir="${project_root}/output"
 payload_archive="${output_dir}/install-payload.oci"
 iso="${output_dir}/aerocore-os-${image_tag}-live-amd64.iso"
@@ -108,6 +109,12 @@ validate_install_payload() {
 mkdir -p "${output_dir}"
 ensure_rootful_image
 validate_install_payload
+if [[ -z "${live_base_image}" ]]; then
+  fedora_version="$("${podman_cmd[@]}" run --rm --network none --entrypoint /usr/bin/rpm "${source_image}" -E %fedora)"
+  [[ "${fedora_version}" =~ ^[0-9]+$ ]] || { echo "Invalid Fedora version: ${fedora_version}" >&2; exit 1; }
+  [[ "${fedora_version}" == 45 ]] || { echo "Expected Fedora 45 payload, got ${fedora_version}" >&2; exit 1; }
+  live_base_image="ghcr.io/ublue-os/bazzite:stable-45.20261112"
+fi
 
 "${podman_cmd[@]}" tag "${source_image}" "${payload}"
 "${podman_cmd[@]}" save --format oci-archive --output "${payload_archive}" "${payload}"
@@ -120,7 +127,7 @@ validate_install_payload
   --build-arg "INSTALL_IMAGE_PAYLOAD_ARCHIVE=/install-payload.oci" \
   --build-arg "INSTALL_IMAGE_TAG=${image_tag}" \
   --build-arg "OSTREE_IMAGE_REF=${ostree_image_ref}" \
-  --tag "${payload}" \
+  --tag "${installer_image}" \
   --file installer/Containerfile \
   .
 
@@ -144,7 +151,7 @@ git -C "${tmp_titanoboa}" checkout --quiet "${titanoboa_revision}"
   cd "${tmp_titanoboa}"
   env \
     CI=1 \
-    TITANOBOA_CTR_IMAGE="${payload}" \
+    TITANOBOA_CTR_IMAGE="${installer_image}" \
     TITANOBOA_OUTPUT_DIR="${tmp_titanoboa}/output" \
     "${tmp_titanoboa}/main.sh"
 )
