@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+
+set -u
+
+config_file=/etc/environment.d/99-aerocore-mirrors.conf
+[[ -r "${config_file}" ]] || exit 0
+
+FLATPAK_REMOTE_URL="$(sed -n 's/^FLATPAK_REMOTE_URL=//p' "${config_file}" | tail -n 1)"
+[[ -n "${FLATPAK_REMOTE_URL}" ]] || exit 0
+[[ "${FLATPAK_REMOTE_URL}" =~ ^https?://[^[:space:]]+$ ]] || {
+  echo "Ignoring invalid FLATPAK_REMOTE_URL: ${FLATPAK_REMOTE_URL}" >&2
+  exit 0
+}
+
+mirror_url="${FLATPAK_REMOTE_URL%/}/"
+if flatpak remotes --system --columns=name | grep -Fxq flathub; then
+  flatpak remote-modify --system flathub --url="${mirror_url}"
+else
+  flatpak remote-add --system --if-not-exists flathub /etc/flatpak/remotes.d/flathub.flatpakrepo
+  flatpak remote-modify --system flathub --url="${mirror_url}"
+fi

@@ -14,6 +14,10 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# Apply configured Flatpak mirrors to existing installations as well as new
+# remotes created from flathub.flatpakrepo during first boot.
+systemctl enable aerocore-flatpak-mirror.service
+
 # Keep Bazzite's game mode news hook unchanged; select the matching feed branch.
 NEWS_HOOK_CONFIG=/etc/gamemode-news-hook.conf
 if [[ ! -f "${NEWS_HOOK_CONFIG}" ]]; then
