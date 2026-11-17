@@ -1,0 +1,40 @@
+name: Cleanup Old Images
+
+on:
+  schedule:
+    - cron: "15 0 * * 0" # 00:15 UTC every Sunday
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview deletions without removing images"
+        required: true
+        default: true
+        type: boolean
+
+permissions: {}
+
+concurrency:
+  group: cleanup-ghcr-images
+  cancel-in-progress: false
+
+jobs:
+  cleanup-ghcr:
+    name: Clean old GHCR image versions
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete images older than 90 days
+        uses: dataaxiom/ghcr-cleanup-action@d52806a0dc70b430571a37da1fde39733ffd640f # v1.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          packages: aerocore-os
+          older-than: 90 days
+          keep-n-tagged: 7
+          keep-n-untagged: 7
+          delete-orphaned-images: true
+          # Protect the rolling channel aliases, including the current Fedora-major aliases.
+          exclude-tags: '^(stable|latest|testing|stable-[0-9]+|testing-[0-9]+)$'
+          use-regex: true
+          dry-run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
