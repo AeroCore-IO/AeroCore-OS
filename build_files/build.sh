@@ -14,6 +14,10 @@ esac
 # Copy the contents of system_files/ of the git repo to /
 cp -avf "/ctx/system_files"/. /
 
+# Apply configured Flatpak mirrors to existing installations as well as new
+# remotes created from flathub.flatpakrepo during first boot.
+systemctl enable aerocore-flatpak-mirror.service
+
 # Keep Bazzite's game mode news hook unchanged; select the matching feed branch.
 NEWS_HOOK_CONFIG=/etc/gamemode-news-hook.conf
 if [[ ! -f "${NEWS_HOOK_CONFIG}" ]]; then
@@ -145,6 +149,7 @@ if [[ -f "${CEC_CONFIG}" ]]; then
   fi
 fi
 
+configure_mirrors() {
 mkdir -p /etc/environment.d
 
 if [[ -n "${FLATPAK_REMOTE_URL:-}" || -n "${HOMEBREW_BOTTLE_DOMAIN:-}" || -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
@@ -153,8 +158,35 @@ fi
 
 if [[ -n "${FLATPAK_REMOTE_URL:-}" ]]; then
   printf '%s\n' "FLATPAK_REMOTE_URL=${FLATPAK_REMOTE_URL}" >> /etc/environment.d/99-aerocore-mirrors.conf
-  if [[ -f /usr/libexec/bazzite-mirror-utils.sh ]]; then
-    bash /usr/libexec/bazzite-mirror-utils.sh update_flathub_repo_url "${FLATPAK_REMOTE_URL}"
+  mirror_utils=/usr/libexec/bazzite-mirror-utils.sh
+  flatpak_repo=/etc/flatpak/remotes.d/flathub.flatpakrepo
+  expected_flatpak_url="${FLATPAK_REMOTE_URL%/}/"
+  mirror_updated=false
+
+  if [[ -r "${mirror_utils}" ]] && bash "${mirror_utils}" update_flathub_repo_url "${FLATPAK_REMOTE_URL}"; then
+    mirror_updated=true
+  fi
+
+  # Keep mirror configuration best-effort. If Bazzite's helper is absent or
+  # cannot update the definition, update its Url field directly as a fallback.
+  if [[ "${mirror_updated}" != true && -w "${flatpak_repo}" ]]; then
+    temp_repo="$(mktemp)"
+    if awk -v url="${expected_flatpak_url}" '
+      BEGIN { updated = 0 }
+      /^Url=/ { print "Url=" url; updated = 1; next }
+      { print }
+      END { if (!updated) print "Url=" url }
+    ' "${flatpak_repo}" > "${temp_repo}" && mv "${temp_repo}" "${flatpak_repo}"; then
+      mirror_updated=true
+    else
+      rm -f "${temp_repo}"
+    fi
+  fi
+
+  if [[ "${mirror_updated}" == true ]]; then
+    echo "Configured Flathub mirror: ${expected_flatpak_url}"
+  else
+    echo "Warning: could not configure Flathub mirror ${expected_flatpak_url}; keeping the existing repo definition." >&2
   fi
 fi
 
@@ -172,6 +204,11 @@ if [[ -n "${HOMEBREW_API_DOMAIN:-}" ]]; then
 fi
 
 find /etc/environment.d /etc/skel/.config/environment.d -name 99-aerocore-mirrors.conf -type f -exec chmod 0644 {} + 2>/dev/null || true
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  configure_mirrors
+fi
 
 /ctx/install-instruments.sh
 /ctx/patch-bazzite-deck-identity.sh

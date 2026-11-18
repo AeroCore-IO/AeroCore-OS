@@ -1,0 +1,11 @@
+[Unit]
+Description=Apply configured AeroCore Flatpak mirror
+After=flatpak-add-fedora-repos.service bazzite-flatpak-manager.service
+Wants=flatpak-add-fedora-repos.service bazzite-flatpak-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/aerocore-configure-flatpak-mirror
+
+[Install]
+WantedBy=multi-user.target
