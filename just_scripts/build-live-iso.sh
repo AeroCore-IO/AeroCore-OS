@@ -113,7 +113,7 @@ if [[ -z "${live_base_image}" ]]; then
   fedora_version="$("${podman_cmd[@]}" run --rm --network none --entrypoint /usr/bin/rpm "${source_image}" -E %fedora)"
   [[ "${fedora_version}" =~ ^[0-9]+$ ]] || { echo "Invalid Fedora version: ${fedora_version}" >&2; exit 1; }
   [[ "${fedora_version}" == 45 ]] || { echo "Expected Fedora 45 payload, got ${fedora_version}" >&2; exit 1; }
-  live_base_image="ghcr.io/ublue-os/bazzite:stable-45.20261112"
+  live_base_image="ghcr.io/ublue-os/bazzite:testing-45.20261123.1"
 fi
 
 "${podman_cmd[@]}" tag "${source_image}" "${payload}"
